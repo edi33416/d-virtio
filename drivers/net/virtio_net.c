@@ -258,20 +258,26 @@ static int vq2txq(struct virtqueue *vq)
 	return (vq->index - 1) / 2;
 }
 
-static int txq2vq(int txq)
-{
-	return txq * 2 + 1;
-}
+int txq2vq(int txq);
+
+/*static int __txq2vq(int txq) {*/
+    /*int tmp;*/
+/*//    printk(KERN_WARNING "%s: Intro\n", __func__);*/
+/*//    printk(KERN_WARNING "%s: %p\n", __func__, _txq2vq);*/
+/*//    printk(KERN_WARNING "%s: %d\n", __func__, txq);*/
+    /*//tmp = _txq2vq(txq);*/
+    /*tmp = _txq2vq(txq);*/
+    /*printk(KERN_WARNING "%s: %d %d\n", __func__, tmp, txq);*/
+    /*return tmp;*/
+/*}*/
 
 static int vq2rxq(struct virtqueue *vq)
 {
 	return vq->index / 2;
 }
 
-static int rxq2vq(int rxq)
-{
-	return rxq * 2;
-}
+int rxq2vq(int rxq);
+
 
 static inline struct virtio_net_hdr_mrg_rxbuf *skb_vnet_hdr(struct sk_buff *skb)
 {
@@ -343,22 +349,16 @@ static void skb_xmit_done(struct virtqueue *vq)
 		netif_wake_subqueue(vi->dev, vq2txq(vq));
 }
 
-#define MRG_CTX_HEADER_SHIFT 22
-static void *mergeable_len_to_ctx(unsigned int truesize,
-				  unsigned int headroom)
-{
-	return (void *)(unsigned long)((headroom << MRG_CTX_HEADER_SHIFT) | truesize);
-}
+/*#define MRG_CTX_HEADER_SHIFT 22*/
+void *mergeable_len_to_ctx(unsigned int truesize,
+				  unsigned int headroom);
 
-static unsigned int mergeable_ctx_to_headroom(void *mrg_ctx)
-{
-	return (unsigned long)mrg_ctx >> MRG_CTX_HEADER_SHIFT;
-}
 
-static unsigned int mergeable_ctx_to_truesize(void *mrg_ctx)
-{
-	return (unsigned long)mrg_ctx & ((1 << MRG_CTX_HEADER_SHIFT) - 1);
-}
+unsigned int mergeable_ctx_to_headroom(void *mrg_ctx);
+
+
+unsigned int mergeable_ctx_to_truesize(void *mrg_ctx);
+
 
 /* Called from bottom half context */
 static struct sk_buff *page_to_skb(struct virtnet_info *vi,
@@ -2646,11 +2646,15 @@ static int virtnet_find_vqs(struct virtnet_info *vi)
 	/* Allocate/initialize parameters for send/receive virtqueues */
 	for (i = 0; i < vi->max_queue_pairs; i++) {
 		callbacks[rxq2vq(i)] = skb_recv_done;
+        printk(KERN_WARNING "%s: first intro\n", __func__);
 		callbacks[txq2vq(i)] = skb_xmit_done;
+        printk(KERN_WARNING "%s: first exit\n", __func__);
 		sprintf(vi->rq[i].name, "input.%d", i);
 		sprintf(vi->sq[i].name, "output.%d", i);
 		names[rxq2vq(i)] = vi->rq[i].name;
+        printk(KERN_WARNING "%s: second intro\n", __func__);
 		names[txq2vq(i)] = vi->sq[i].name;
+        printk(KERN_WARNING "%s: second exit\n", __func__);
 		if (ctx)
 			ctx[rxq2vq(i)] = true;
 	}
@@ -3160,7 +3164,7 @@ static struct virtio_driver virtio_net_driver = {
 static __init int virtio_net_driver_init(void)
 {
 	int ret;
-
+    printk(KERN_ALERT "salut\n");
 	ret = cpuhp_setup_state_multi(CPUHP_AP_ONLINE_DYN, "virtio/net:online",
 				      virtnet_cpu_online,
 				      virtnet_cpu_down_prep);

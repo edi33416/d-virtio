@@ -13,9 +13,12 @@ case $ARCH in
     arm)
 	qemu=qemu-system-arm
 	;;
+    x86_64)
+	qemu=qemu-system-x86_64
+	;;
 esac
 
 echo info chardev | nc -U -l qemu.mon | egrep --line-buffered -o "/dev/pts/[0-9]*" | xargs -I PTS ln -fs PTS serial.pts &
 $qemu "$@" -monitor unix:qemu.mon
-rm qemu.mon 
-rm serial.pts
+rm -f qemu.mon 
+rm -f serial.pts
