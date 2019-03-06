@@ -1,11 +1,15 @@
 KDIR=$(shell realpath $(PWD)/../..)
-
+D_SRC=$(shell realpath $(PWD)/../../drivers/net/dfiles)
 LABS?=$(shell cd templates && find -mindepth 1 -maxdepth 1 -type d)
 MODS=$(shell cd templates && find $(LABS) -mindepth 1 -name Kbuild | xargs dirname)
 TODO?=0
 
 include qemu/Makefile
 
+run: copy
+	$(MAKE) -C $(D_SRC)
+	$(MAKE) boot ARCH=x86_64
+	
 skels:
 	mkdir -p skels
 	cd templates && find $(LABS) -type f | xargs ./generate_skels.py --output ../skels --todo $(TODO)
@@ -24,6 +28,7 @@ TEMPDIR := $(shell mktemp -u)
 
 copy: $(YOCTO_IMAGE)
 	if  [ -e qemu.mon ]; then exit 1; fi
+	mv ../../drivers/net/virtio_net_tmp.ko skels
 	mkdir $(TEMPDIR)
 	sudo mount -t ext4 -o loop $(YOCTO_IMAGE) $(TEMPDIR)
 	find skels -type f \( -name *.ko -or -executable \) | xargs sudo cp --parents -t $(TEMPDIR)/home/root || true
@@ -39,5 +44,6 @@ docs:
 	#cp -r $(KDIR)/Documentation/output/slides/teaching/_static $(KDIR)/Documentation/output/teaching/
 clean::
 	rm -rf skels
+	$(MAKE) -C $(D_SRC) clean
 
 .PHONY: skels

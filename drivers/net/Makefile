@@ -6,6 +6,9 @@
 #
 # Networking Core Drivers
 #
+
+#DOBJ=$(wildcard ./dfiles/*.o_shipped)
+
 obj-$(CONFIG_BONDING) += bonding/
 obj-$(CONFIG_IPVLAN) += ipvlan/
 obj-$(CONFIG_IPVTAP) += ipvlan/
@@ -26,7 +29,8 @@ obj-$(CONFIG_TUN) += tun.o
 obj-$(CONFIG_TAP) += tap.o
 obj-$(CONFIG_VETH) += veth.o
 obj-$(CONFIG_VIRTIO_NET) += virtio_net_tmp.o
-virtio_net_tmp-y = virtio_net.o dvirtio_net.o_shipped
+#virtio_net_tmp-y = virtio_net.o $(DOBJ)
+virtio_net_tmp-y = virtio_net.o mod_devicetable_h.o_shipped dvirtio_net.o_shipped spinlock_types_h.o_shipped list_head_h.o_shipped virtio_h.o_shipped
 obj-$(CONFIG_VXLAN) += vxlan.o
 obj-$(CONFIG_GENEVE) += geneve.o
 obj-$(CONFIG_GTP) += gtp.o

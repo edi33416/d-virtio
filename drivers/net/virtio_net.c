@@ -271,10 +271,7 @@ int txq2vq(int txq);
     /*return tmp;*/
 /*}*/
 
-static int vq2rxq(struct virtqueue *vq)
-{
-	return vq->index / 2;
-}
+int vq2rxq(struct virtqueue *vq);
 
 int rxq2vq(int rxq);
 

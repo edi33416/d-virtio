@@ -1,4 +1,5 @@
 import core.stdc.config;
+import virtio_h;
 
 extern(C) int txq2vq(int txq) {
     return txq * 2 + 1;
@@ -23,4 +24,13 @@ extern(C) uint mergeable_ctx_to_headroom(void *mrg_ctx)
 extern(C) uint mergeable_ctx_to_truesize(void *mrg_ctx)
 {
     return cast(c_ulong)(mrg_ctx) & ((1 << MRG_CTX_HEADER_SHIFT) - 1);
+}
+extern(C) int vq2rxq(virtqueue *vq)
+{
+	return vq.index / 2;
+}
+
+extern(C) int vq2rxq(virtqueue *vq)
+{
+	return vq.index / 2;
 }
