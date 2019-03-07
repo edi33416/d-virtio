@@ -2643,7 +2643,7 @@ static int virtnet_find_vqs(struct virtnet_info *vi)
 	/* Allocate/initialize parameters for send/receive virtqueues */
 	for (i = 0; i < vi->max_queue_pairs; i++) {
 		callbacks[rxq2vq(i)] = skb_recv_done;
-        printk(KERN_WARNING "%s: first intro\n", __func__);
+        printk(KERN_WARNING "%s: sallllllllllintro\n", __func__);
 		callbacks[txq2vq(i)] = skb_xmit_done;
         printk(KERN_WARNING "%s: first exit\n", __func__);
 		sprintf(vi->rq[i].name, "input.%d", i);

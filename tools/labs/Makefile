@@ -1,5 +1,6 @@
 KDIR=$(shell realpath $(PWD)/../..)
 D_SRC=$(shell realpath $(PWD)/../../drivers/net/dfiles)
+TEST_PATH=$(shell realpath $(PWD)/../../drivers/net/dfiles/test.sh)
 LABS?=$(shell cd templates && find -mindepth 1 -maxdepth 1 -type d)
 MODS=$(shell cd templates && find $(LABS) -mindepth 1 -name Kbuild | xargs dirname)
 TODO?=0
@@ -8,6 +9,8 @@ ARCH=x86_64
 include qemu/Makefile
 
 run: copy
+	sudo iptables -t nat -A POSTROUTING -o enp2s0 -j MASQUERADE
+	sudo sysctl -w net.ipv4.ip_forward=1
 	$(MAKE) boot ARCH=$(ARCH)
 	
 build: $(KCONFIG) skels/Kbuild
@@ -26,6 +29,7 @@ skels/Kbuild:
 copy: build $(YOCTO_IMAGE)
 	if  [ -e qemu.mon ]; then exit 1; fi
 	mv ../../drivers/net/virtio_net_tmp.ko skels
+	cp ../../drivers/net/dfiles/test.sh skels
 	mkdir $(TEMPDIR)
 	sudo mount -t ext4 -o loop $(YOCTO_IMAGE) $(TEMPDIR)
 	find skels -type f \( -name *.ko -or -executable \) | xargs sudo cp --parents -t $(TEMPDIR)/home/root || true
