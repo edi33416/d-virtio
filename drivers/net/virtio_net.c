@@ -253,23 +253,9 @@ struct padded_vnet_hdr {
 /* Converting between virtqueue no. and kernel tx/rx queue no.
  * 0:rx0 1:tx0 2:rx1 3:tx1 ... 2N:rxN 2N+1:txN 2N+2:cvq
  */
-static int vq2txq(struct virtqueue *vq)
-{
-	return (vq->index - 1) / 2;
-}
+int vq2txq(struct virtqueue *vq);
 
 int txq2vq(int txq);
-
-/*static int __txq2vq(int txq) {*/
-    /*int tmp;*/
-/*//    printk(KERN_WARNING "%s: Intro\n", __func__);*/
-/*//    printk(KERN_WARNING "%s: %p\n", __func__, _txq2vq);*/
-/*//    printk(KERN_WARNING "%s: %d\n", __func__, txq);*/
-    /*//tmp = _txq2vq(txq);*/
-    /*tmp = _txq2vq(txq);*/
-    /*printk(KERN_WARNING "%s: %d %d\n", __func__, tmp, txq);*/
-    /*return tmp;*/
-/*}*/
 
 int vq2rxq(struct virtqueue *vq);
 
@@ -308,28 +294,13 @@ static struct page *get_a_page(struct receive_queue *rq, gfp_t gfp_mask)
 	return p;
 }
 
-static void virtqueue_napi_schedule(struct napi_struct *napi,
-				    struct virtqueue *vq)
-{
-	if (napi_schedule_prep(napi)) {
-		virtqueue_disable_cb(vq);
-		__napi_schedule(napi);
-	}
-}
+void virtqueue_napi_schedule(struct napi_struct *napi,
+				    struct virtqueue *vq);
 
-static void virtqueue_napi_complete(struct napi_struct *napi,
-				    struct virtqueue *vq, int processed)
-{
-	int opaque;
 
-	opaque = virtqueue_enable_cb_prepare(vq);
-	if (napi_complete_done(napi, processed)) {
-		if (unlikely(virtqueue_poll(vq, opaque)))
-			virtqueue_napi_schedule(napi, vq);
-	} else {
-		virtqueue_disable_cb(vq);
-	}
-}
+void virtqueue_napi_complete(struct napi_struct *napi,
+				    struct virtqueue *vq, int processed);
+
 
 static void skb_xmit_done(struct virtqueue *vq)
 {

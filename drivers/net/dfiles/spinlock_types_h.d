@@ -1,10 +1,13 @@
+import lockdep_map_h;
 
 struct spinlock {
     union {
         raw_spinlock rlock;
+
         version(CONFIG_DEBUG_LOCK_ALLOC) {
             enum LOCK_PADSIZE = raw_spinlock.dep_map.offsetof;
         }
+
         version(CONFIG_DEBUG_LOCK_ALLOC) {
             struct {
                 ubyte[LOCK_PADSIZE] __padding;

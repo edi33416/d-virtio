@@ -1,6 +1,6 @@
 QEMU_DISPLAY ?= none
 ARCH ?= x86
-ifeq ($(ARCH),x86)
+ifeq ($(ARCH),x86_64)
 b = b
 endif
 ZIMAGE=$(KDIR)/arch/$(ARCH)/boot/$(b)zImage
