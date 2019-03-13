@@ -73,18 +73,22 @@ extern(C) void virtqueue_napi_complete(napi_struct *napi, virtqueue *vq, int pro
     }
 }
 
-/*extern(C) bool virtio_has_feature(const virtio_device *, uint);*/
+extern(C) pragma(inline, true) bool __dbind__virtio_has_feature(const virtio_device *vdev, uint fbit);
 
-//extern(C) bool virtnet_fail_on_feature(virtio_device *vdev, uint fbit,
-        //const char *fname, const char *dname)
-//{
-    //if (!virtio_has_feature(vdev, fbit))
-        //return false;
+pragma(inline, true) bool virtio_has_feature(const virtio_device *vdev, uint fbit)
+{
+    return __dbind__virtio_has_feature(vdev, fbit);
+}
 
-//[>    dev_err(&vdev->dev, "device advertises feature %s but not %s",<]
-        ////fname, dname);
+extern(C) bool virtnet_fail_on_feature(virtio_device *vdev, uint fbit,
+        const char *fname, const char *dname)
+{
+    if (!virtio_has_feature(vdev, fbit))
+        return false;
 
-    //return true;
-//}
+    //dev_err(&vdev->dev, "device advertises feature %s but not %s", fname, dname);
+
+    return true;
+}
 
 

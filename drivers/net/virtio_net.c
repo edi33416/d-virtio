@@ -36,6 +36,16 @@
 #include <net/xdp.h>
 #include <net/net_failover.h>
 
+// D Bindings
+
+inline bool __dbind__virtio_has_feature(const struct virtio_device *vdev,
+				      unsigned int fbit)
+{
+	return virtio_has_feature(vdev, fbit);
+}
+
+// End of D Bindings
+
 static int napi_weight = NAPI_POLL_WEIGHT;
 module_param(napi_weight, int, 0444);
 
@@ -2755,18 +2765,10 @@ static const struct attribute_group virtio_net_mrg_rx_group = {
 };
 #endif
 
-static bool virtnet_fail_on_feature(struct virtio_device *vdev,
+bool virtnet_fail_on_feature(struct virtio_device *vdev,
 				    unsigned int fbit,
-				    const char *fname, const char *dname)
-{
-	if (!virtio_has_feature(vdev, fbit))
-		return false;
+				    const char *fname, const char *dname);
 
-	dev_err(&vdev->dev, "device advertises feature %s but not %s",
-		fname, dname);
-
-	return true;
-}
 
 #define VIRTNET_FAIL_ON(vdev, fbit, dbit)			\
 	virtnet_fail_on_feature(vdev, fbit, #fbit, dbit)
