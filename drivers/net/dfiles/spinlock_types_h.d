@@ -1,5 +1,8 @@
 import lockdep_map_h;
 
+
+enum __LITTLE_ENDIAN = 1234;
+
 struct spinlock {
     union {
         raw_spinlock rlock;
@@ -37,29 +40,29 @@ struct qspinlock {
     union {
         atomic_t val;
 
-        version(__LITTLE_ENDIAN)
+        static if (__LITTLE_ENDIAN)
         {
             struct {
                 ubyte locked;
                 ubyte pending;
-            };
+            }
             struct {
                 ushort locked_pending;
                 ushort tail;
-            };
+            }
         }
         else {
             struct {
                 ushort tail;
                 ushort locked_pending;
-            };
+            }
             struct {
                 ubyte[2] reserved;
                 ubyte ending;
                 ubyte locked;
-            };
+            }
         }
-    };
+    }
 }
 
 alias arch_spinlock_t = qspinlock;

@@ -5,13 +5,14 @@ CC_PATH=~/dlang/ldc-1.14.0/activate
 SHELL := /bin/bash
 SRC=$(wildcard *.d)
 TAR=$(SRC:.d=.o_shipped)
+D_FLAGS=-d-version=CONFIG_LOCKDEP,CONFIG_DEBUG_LOCK_ALLOC,CONFIG_DEBUG_SPINLOCK,CONFIG_NETPOLL,CONFIG_64BIT,CONFIG_MUTEX_SPIN_ON_OWNER,CONFIG_DEBUG_MUTEXES,CONFIG_SMP,CONFIG_NET_NS,CONFIG_IPV6,CONFIG_SYSFS,CONFIG_NETFILTER_INGRESS,CONFIG_RFS_ACCEL,CONFIG_XPS
 
 all: build
 
 build: $(TAR) copy
 
 %.o_shipped: %.d
-	source $(CC_PATH) && $(CC) $(CFLAGS) $< -of=$@
+	source $(CC_PATH) && $(CC) $(CFLAGS) $(D_FLAGS) $< -of=$@
 
 copy:
 	mv $(TAR) ..
@@ -20,6 +21,6 @@ print:
 	echo $(TAR)
 
 clean:
-	cd .. ; rm -f $(TAR)
+	cd .. ; rm -f $(TAR); rm -f virtio_net_tmp* virtio_net.o
 
 

@@ -2624,15 +2624,11 @@ static int virtnet_find_vqs(struct virtnet_info *vi)
 	/* Allocate/initialize parameters for send/receive virtqueues */
 	for (i = 0; i < vi->max_queue_pairs; i++) {
 		callbacks[rxq2vq(i)] = skb_recv_done;
-        printk(KERN_WARNING "%s: sallllllllllintro\n", __func__);
 		callbacks[txq2vq(i)] = skb_xmit_done;
-        printk(KERN_WARNING "%s: first exit\n", __func__);
 		sprintf(vi->rq[i].name, "input.%d", i);
 		sprintf(vi->sq[i].name, "output.%d", i);
 		names[rxq2vq(i)] = vi->rq[i].name;
-        printk(KERN_WARNING "%s: second intro\n", __func__);
 		names[txq2vq(i)] = vi->sq[i].name;
-        printk(KERN_WARNING "%s: second exit\n", __func__);
 		if (ctx)
 			ctx[rxq2vq(i)] = true;
 	}
@@ -3134,7 +3130,30 @@ static struct virtio_driver virtio_net_driver = {
 static __init int virtio_net_driver_init(void)
 {
 	int ret;
-    printk(KERN_ALERT "salut\n");
+
+    pr_info("Sizeof napi_struct: %ld\n", sizeof(struct napi_struct));
+    pr_info("Sizeof virtio_device: %ld\n", sizeof(struct virtio_device));
+    pr_info("Sizeof bool: %ld\n", sizeof(bool));
+    pr_info("Sizeof spinlock_t: %ld\n", sizeof(spinlock_t));
+    pr_info("Sizeof device: %ld\n", sizeof(struct device));
+    pr_info("Sizeof virtio-device_id: %ld\n", sizeof(struct virtio_device_id));
+    pr_info("Sizeof mutex: %ld\n", sizeof(struct mutex));
+    pr_info("Sizeof kobject: %ld\n", sizeof(struct kobject));
+    pr_info("Sizeof dev_links_info : %ld\n", sizeof(struct dev_links_info));
+    pr_info("Sizeof dev_pm_info : %ld\n", sizeof(struct dev_pm_info));
+    pr_info("Sizeof dev_archdata : %ld\n", sizeof(struct dev_archdata));
+    pr_info("Sizeof klist_node : %ld\n", sizeof(struct klist_node));
+    pr_info("Sizeof net_device : %ld\n", sizeof(struct net_device));
+    pr_info("Sizeof netdev_tc_txq:%ld\n", sizeof(struct netdev_tc_txq));
+    pr_info("Sizeof possible_net_t:%ld\n", sizeof(possible_net_t));
+    pr_info("Sizeof netdev_hw_addr_list:%ld\n", sizeof(struct netdev_hw_addr_list));
+    pr_info("Sizeof atomic_t:%ld\n", sizeof(atomic_t));
+    pr_info("Sizeof atomic_long_t:%ld\n", sizeof(atomic_long_t));
+    pr_info("Sizeof timer_list:%ld\n", sizeof(struct timer_list));
+    pr_info("Sizeof net_device_stats:%ld\n", sizeof(struct net_device_stats));
+
+
+
 	ret = cpuhp_setup_state_multi(CPUHP_AP_ONLINE_DYN, "virtio/net:online",
 				      virtnet_cpu_online,
 				      virtnet_cpu_down_prep);

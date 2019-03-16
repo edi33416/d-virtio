@@ -5,8 +5,7 @@ import lockdep_map_h;
 
 
 struct atomic64_t {
-align(8):
-    ulong counter;
+    align(8) ulong counter;
 }
 
 struct optimistic_spin_queue {

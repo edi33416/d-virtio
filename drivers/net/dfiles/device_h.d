@@ -86,19 +86,35 @@ struct pm_message {
 struct pm_subsys_data;
 struct dev_pm_qos;
 
+version(CONFIG_INTEL_IOMMU) {
+    enum ENABLE_INTEL_IOMMU = 1;
+}
+else {
+
+    enum ENABLE_INTEL_IOMMU = 0;
+}
+
+version(CONFIG_AMD_IOMMU) {
+    enum ENABLE_AMD_IOMMU = 1;
+}
+else {
+    enum ENABLE_AMD_IOMMU = 0;
+}
+
+version(CONFIG_STA2X11) {
+    enum ENABLE_STA2X11 = 1;
+}
+else {
+    enum ENABLE_STA2X11 = 0;
+}
+
 struct dev_archdata {
 
-    version(CONFIG_INTEL_IOMMU) {
+    static if (ENABLE_INTEL_IOMMU || ENABLE_AMD_IOMMU) {
         void *iommu;
     }
-    else
-    {
-        version(CONFIG_AMD_IOMMU) {
-            void *iommu;
-        }
-    }
 
-    version(CONFIG_STA2X11) {
+    static if (ENABLE_STA2X11) {
         bool is_sta2x11;
     }
 }
@@ -296,7 +312,9 @@ struct device {
     }
 
     /* arch specific additions */
-    dev_archdata archdata;
+    static if(ENABLE_INTEL_IOMMU || ENABLE_AMD_IOMMU || ENABLE_STA2X11) {
+        dev_archdata archdata;
+    }
 
     device_node *of_node; /* associated device tree node */
     fwnode_handle *fwnode; /* firmware device node */

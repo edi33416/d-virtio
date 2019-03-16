@@ -1,5 +1,35 @@
 import core.stdc.config;
 import virtio_h;
+import mod_devicetable_h;
+import napi_struct_h : napi_struct;
+import spinlock_types_h;
+import device_h;
+import mutex_h;
+import kobject_h : kobject;
+import net_device_h;
+
+pragma(msg, "Sizeof napi_struct: ", napi_struct.sizeof);
+pragma(msg, "Sizeof virtqueue: ", virtqueue.sizeof);
+pragma(msg, "Sizeof virtio_device: ", virtio_device.sizeof);
+pragma(msg, "Sizeof bool: ", bool.sizeof);
+pragma(msg, "Sizeof spinlock_t:", spinlock_t.sizeof);
+pragma(msg, "Sizeof device:", device.sizeof);
+pragma(msg, "Sizeof virtio-device_id:", virtio_device_id.sizeof);
+pragma(msg, "Sizeof mutex:", mutex.sizeof);
+pragma(msg, "Sizeof kobject:", kobject.sizeof);
+pragma(msg, "Sizeof dev_links_info :", dev_links_info.sizeof);
+pragma(msg, "Sizeof dev_pm_info:", dev_pm_info.sizeof);
+pragma(msg, "Sizeof dev_archdata:", dev_archdata.sizeof);
+pragma(msg, "Sizeof klist_node:", klist_node.sizeof);
+pragma(msg, "Sizeof net_device:", net_device.sizeof);
+pragma(msg, "Sizeof netdev_tc_txq:", netdev_tc_txq.sizeof);
+pragma(msg, "Sizeof possible_net_t:", possible_net_t.sizeof);
+pragma(msg, "Sizeof netdev_hw_addr_list:", netdev_hw_addr_list.sizeof);
+pragma(msg, "Sizeof atomic_t:", atomic_t.sizeof);
+pragma(msg, "Sizeof atomic_long_t:", atomic_long_t.sizeof);
+pragma(msg, "Sizeof timer_list:", timer_list.sizeof);
+pragma(msg, "Sizeof net_device_stats:", net_device_stats.sizeof);
+
 
 
 extern(C) int txq2vq(int txq) {
@@ -44,7 +74,6 @@ extern(C) int vq2txq(virtqueue *vq)
 extern(C) bool napi_schedule_prep(napi_struct *);
 extern(C) void virtqueue_disable_cb(virtqueue *);
 extern(C) void __napi_schedule(napi_struct *);
-struct napi_struct;
 
 extern(C) void virtqueue_napi_schedule(napi_struct *napi, virtqueue *vq)
 {
