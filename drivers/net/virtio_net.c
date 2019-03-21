@@ -3176,16 +3176,21 @@ static __init int virtio_net_driver_init(void)
     /*pr_info("offset page_struct.private:%ld\n", offsetof(struct page, private));*/
     /*pr_info("offset page_struct.pmd_huge_pte:%ld\n", offsetof(struct page, pmd_huge_pte));*/
     pr_info("Sizeof receive_queue:%ld\n", sizeof(struct receive_queue));
-    pr_info("offset receive_queue.vq:%ld\n", offsetof(struct receive_queue, vq));
-    pr_info("offset receive_queue.napi:%ld\n", offsetof(struct receive_queue, napi));
-    pr_info("offset receive_queue.xdp_prog:%ld\n", offsetof(struct receive_queue, xdp_prog));
-    pr_info("offset receive_queue.stats:%ld\n", offsetof(struct receive_queue, stats));
-    pr_info("offset receive_queue.pages:%ld\n", offsetof(struct receive_queue, pages));
-    pr_info("offset receive_queue.mrg_avg_pkt_len:%ld\n", offsetof(struct receive_queue, mrg_avg_pkt_len));
-    pr_info("offset receive_queue.alloc_frag:%ld\n", offsetof(struct receive_queue, alloc_frag));
-    pr_info("offset receive_queue.sg:%ld\n", offsetof(struct receive_queue, sg));
-    pr_info("offset receive_queue.xdp_rxq:%ld\n", offsetof(struct receive_queue, xdp_rxq));
+    /*pr_info("offset receive_queue.vq:%ld\n", offsetof(struct receive_queue, vq));*/
+    /*pr_info("offset receive_queue.napi:%ld\n", offsetof(struct receive_queue, napi));*/
+    /*pr_info("offset receive_queue.xdp_prog:%ld\n", offsetof(struct receive_queue, xdp_prog));*/
+    /*pr_info("offset receive_queue.stats:%ld\n", offsetof(struct receive_queue, stats));*/
+    /*pr_info("offset receive_queue.pages:%ld\n", offsetof(struct receive_queue, pages));*/
+    /*pr_info("offset receive_queue.mrg_avg_pkt_len:%ld\n", offsetof(struct receive_queue, mrg_avg_pkt_len));*/
+    /*pr_info("offset receive_queue.alloc_frag:%ld\n", offsetof(struct receive_queue, alloc_frag));*/
+    /*pr_info("offset receive_queue.sg:%ld\n", offsetof(struct receive_queue, sg));*/
+    /*pr_info("offset receive_queue.xdp_rxq:%ld\n", offsetof(struct receive_queue, xdp_rxq));*/
     pr_info("Sizeof scatterlist:%ld\n", sizeof(struct scatterlist));
+    pr_info("Sizeof control_buf:%ld\n", sizeof(struct control_buf));
+    pr_info("Sizeof virtnet_info:%ld\n", sizeof(struct virtnet_info));
+    /*pr_info("offset virnet_info.rq:%ld\n", offsetof(struct virtnet_info, rq));*/
+    /*pr_info("offset virnet_info.refill:%ld\n", offsetof(struct virtnet_info, refill));*/
+    /*pr_info("offset virnet_info.failover:%ld\n", offsetof(struct virtnet_info, failover));*/
 
 	ret = cpuhp_setup_state_multi(CPUHP_AP_ONLINE_DYN, "virtio/net:online",
 				      virtnet_cpu_online,

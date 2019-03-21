@@ -12,6 +12,8 @@ import bpf_prog_h : bpf_prog;
 import send_queue_h : send_queue, scatterlist;
 import page_h : page;
 import receive_queue_h : receive_queue;
+import control_buf_h : control_buf;
+import virnet_info_h : virtnet_info;
 
 pragma(msg, "Sizeof napi_struct: ", napi_struct.sizeof);
 pragma(msg, "Sizeof virtqueue: ", virtqueue.sizeof);
@@ -59,16 +61,21 @@ pragma(msg, "Sizeof page_struct:", page.sizeof);
 //pragma(msg, "Offsetof page_struct.private:", page.d_alias_private.offsetof);
 //pragma(msg, "Offsetof page_struct.pmd_huge_pte:", page.pmd_huge_pte.offsetof);
 pragma(msg, "Sizeof receive_queue:", receive_queue.sizeof);
-pragma(msg, "Offsetof receive_queue.vq:", receive_queue.vq.offsetof);
-pragma(msg, "Offsetof receive_queue.napi:", receive_queue.napi.offsetof);
-pragma(msg, "Offsetof receive_queue.xdp_prog:", receive_queue.xdp_prog.offsetof);
-pragma(msg, "Offsetof receive_queue.stats:", receive_queue.stats.offsetof);
-pragma(msg, "Offsetof receive_queue.pages:", receive_queue.pages.offsetof);
-pragma(msg, "Offsetof receive_queue.mrg_avg_pkt_len:", receive_queue.mrg_avg_pkt_len.offsetof);
-pragma(msg, "Offsetof receive_queue.alloc_frag:", receive_queue.alloc_frag.offsetof);
-pragma(msg, "Offsetof receive_queue.sq:", receive_queue.sg.offsetof);
-pragma(msg, "Offsetof receive_queue.xdp_rxq:", receive_queue.xdp_rxq.offsetof);
+//pragma(msg, "Offsetof receive_queue.vq:", receive_queue.vq.offsetof);
+//pragma(msg, "Offsetof receive_queue.napi:", receive_queue.napi.offsetof);
+//pragma(msg, "Offsetof receive_queue.xdp_prog:", receive_queue.xdp_prog.offsetof);
+//pragma(msg, "Offsetof receive_queue.stats:", receive_queue.stats.offsetof);
+//pragma(msg, "Offsetof receive_queue.pages:", receive_queue.pages.offsetof);
+//pragma(msg, "Offsetof receive_queue.mrg_avg_pkt_len:", receive_queue.mrg_avg_pkt_len.offsetof);
+//pragma(msg, "Offsetof receive_queue.alloc_frag:", receive_queue.alloc_frag.offsetof);
+//pragma(msg, "Offsetof receive_queue.sq:", receive_queue.sg.offsetof);
+//pragma(msg, "Offsetof receive_queue.xdp_rxq:", receive_queue.xdp_rxq.offsetof);
 pragma(msg, "Sizeof scatterlist:", scatterlist.sizeof);
+pragma(msg, "Sizeof control_buf:", control_buf.sizeof);
+pragma(msg, "Sizeof virtnet_info:", virtnet_info.sizeof);
+//pragma(msg, "Offsetof virtnet_info.rq:", virtnet_info.rq.offsetof);
+//pragma(msg, "Offsetof virtnet_info.refill:", virtnet_info.refill.offsetof);
+//pragma(msg, "Offsetof virtnet_info.failover:", virtnet_info.failover.offsetof);
 
 
 extern(C) int txq2vq(int txq) {

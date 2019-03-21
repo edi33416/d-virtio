@@ -126,35 +126,6 @@ struct bpf_prog_aux {
 }
 
 
-struct aaa {
-    int x;
-    union aa {
-        sock_filter[0] insns;
-        bpf_insn[0] insnsi;
-    }
-    aa[0] mm;
-    pragma(inline, true) sock_filter* insns() { return ((mm.ptr).insns).ptr; }
-    pragma(inline, true) bpf_insn* insnsi() { return ((mm.ptr).insnsi).ptr; }
-//union {
-    //sock_filter[0] insns;
-    //bpf_insn[0] insnsi;
-//}
-}
-
-//strut aaa *x = malloc(sizeof(aaa) + 3 * sizeof(sock_filter));
-
-//x->insns[2]
-
-//cast(sock_filter*)(x + offsetof(aaa, insns)) + 2
-
-
-pragma(msg, aaa.sizeof);
-pragma(msg, void.sizeof);
-aaa x;
-pragma(msg, typeof((cast(aaa.aa*)(x.mm.ptr)).insns).stringof);
-pragma(msg, typeof(x.insns()).stringof);
-pragma(msg, typeof(x.insnsi()).stringof);
-
 struct bpf_prog {
     ushort pages;
 
@@ -188,6 +159,5 @@ struct bpf_prog {
     }
     dummy_anon_union[0] dummy_anon_union_i;
     pragma(inline, true) sock_filter* insns() { return ((dummy_anon_union_i.ptr).insns).ptr; }
-    //pragma(inline, true) sock_filter* insns() { return ((dummy_anon_union_i.ptr).insns).ptr; }
     pragma(inline, true) bpf_insn* insnsi() { return ((dummy_anon_union_i.ptr).insnsi).ptr; }
 }
