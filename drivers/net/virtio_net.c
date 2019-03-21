@@ -279,15 +279,15 @@ struct virtio_net_hdr_mrg_rxbuf *skb_vnet_hdr(struct sk_buff *skb);
  * private is used to chain pages for big packets, put the whole
  * most recent used list in the beginning for reuse
  */
-static void give_pages(struct receive_queue *rq, struct page *page)
-{
-	struct page *end;
+void give_pages(struct receive_queue *rq, struct page *page);
+/*{*/
+	/*struct page *end;*/
 
-	/* Find end of list, sew whole thing into vi->rq.pages. */
-	for (end = page; end->private; end = (struct page *)end->private);
-	end->private = (unsigned long)rq->pages;
-	rq->pages = page;
-}
+	/*[> Find end of list, sew whole thing into vi->rq.pages. <]*/
+	/*for (end = page; end->private; end = (struct page *)end->private);*/
+	/*end->private = (unsigned long)rq->pages;*/
+	/*rq->pages = page;*/
+/*}*/
 
 static struct page *get_a_page(struct receive_queue *rq, gfp_t gfp_mask)
 {
@@ -302,32 +302,29 @@ static struct page *get_a_page(struct receive_queue *rq, gfp_t gfp_mask)
 	return p;
 }
 
-void virtqueue_napi_schedule(struct napi_struct *napi,
-				    struct virtqueue *vq);
+void virtqueue_napi_schedule(struct napi_struct *napi, struct virtqueue *vq);
 
 
-void virtqueue_napi_complete(struct napi_struct *napi,
-				    struct virtqueue *vq, int processed);
+void virtqueue_napi_complete(struct napi_struct *napi, struct virtqueue *vq, int processed);
 
 
-static void skb_xmit_done(struct virtqueue *vq)
-{
-	struct virtnet_info *vi = vq->vdev->priv;
-	struct napi_struct *napi = &vi->sq[vq2txq(vq)].napi;
+void skb_xmit_done(struct virtqueue *vq);
+/*{*/
+	/*struct virtnet_info *vi = vq->vdev->priv;*/
+	/*struct napi_struct *napi = &vi->sq[vq2txq(vq)].napi;*/
 
-	/* Suppress further interrupts. */
-	virtqueue_disable_cb(vq);
+	/*[> Suppress further interrupts. <]*/
+	/*virtqueue_disable_cb(vq);*/
 
-	if (napi->weight)
-		virtqueue_napi_schedule(napi, vq);
-	else
-		/* We were probably waiting for more output buffers. */
-		netif_wake_subqueue(vi->dev, vq2txq(vq));
-}
+	/*if (napi->weight)*/
+		/*virtqueue_napi_schedule(napi, vq);*/
+	/*else*/
+		/*[> We were probably waiting for more output buffers. <]*/
+		/*netif_wake_subqueue(vi->dev, vq2txq(vq));*/
+/*}*/
 
 /*#define MRG_CTX_HEADER_SHIFT 22*/
-void *mergeable_len_to_ctx(unsigned int truesize,
-				  unsigned int headroom);
+void *mergeable_len_to_ctx(unsigned int truesize, unsigned int headroom);
 
 
 unsigned int mergeable_ctx_to_headroom(void *mrg_ctx);
