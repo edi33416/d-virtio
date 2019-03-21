@@ -14,6 +14,7 @@ version (CONFIG_SMP)
 }
 else
 {
+    enum ____cacheline_aligned = "";  //ca sa nu dea eroare cand o import
     enum ____cacheline_aligned_in_smp = "";
 }
 

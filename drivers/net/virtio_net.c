@@ -272,10 +272,8 @@ int vq2rxq(struct virtqueue *vq);
 int rxq2vq(int rxq);
 
 
-static inline struct virtio_net_hdr_mrg_rxbuf *skb_vnet_hdr(struct sk_buff *skb)
-{
-	return (struct virtio_net_hdr_mrg_rxbuf *)skb->cb;
-}
+struct virtio_net_hdr_mrg_rxbuf *skb_vnet_hdr(struct sk_buff *skb);
+
 
 /*
  * private is used to chain pages for big packets, put the whole
@@ -3151,8 +3149,43 @@ static __init int virtio_net_driver_init(void)
     pr_info("Sizeof atomic_long_t:%ld\n", sizeof(atomic_long_t));
     pr_info("Sizeof timer_list:%ld\n", sizeof(struct timer_list));
     pr_info("Sizeof net_device_stats:%ld\n", sizeof(struct net_device_stats));
-
-
+    pr_info("Sizeof sock_filter:%ld\n", sizeof(struct sock_filter));
+    pr_info("Sizeof bpf_insn:%ld\n", sizeof(struct bpf_insn));
+    pr_info("Sizeof sk_buff:%ld\n", sizeof(struct sk_buff));
+    /*pr_info("offset sk_buff.csum:%ld\n", offsetof(struct sk_buff, csum));*/
+    /*pr_info("offset sk_buff.queue_mapping:%ld\n", offsetof(struct sk_buff, queue_mapping));*/
+    /*pr_info("offset sk_buff.headers_start:%ld\n", offsetof(struct sk_buff, headers_start));*/
+    /*pr_info("offset sk_buff.cb:%ld\n", offsetof(struct sk_buff, cb));*/
+    /*pr_info("offset sk_buff.tcp_tsorted_anchor:%ld\n", offsetof(struct sk_buff, tcp_tsorted_anchor));*/
+    /*pr_info("offset sk_buff.len:%ld\n", offsetof(struct sk_buff, len));*/
+    /*pr_info("offset sk_buff.data_len:%ld\n", offsetof(struct sk_buff, data_len));*/
+    /*pr_info("offset sk_buff.mac_len:%ld\n", offsetof(struct sk_buff, mac_len));*/
+    /*pr_info("offset sk_buff.hdr_len:%ld\n", offsetof(struct sk_buff, hdr_len));*/
+    /*pr_info("offset sk_buff.priority:%ld\n", offsetof(struct sk_buff, priority));*/
+    /*pr_info("offset sk_buff.mac_header:%ld\n", offsetof(struct sk_buff, mac_header));*/
+    /*pr_info("offset sk_buff.mac_header:%ld\n", offsetof(struct sk_buff, mac_header));*/
+    pr_info("Sizeof bpf_prog:%ld\n", sizeof(struct bpf_prog));
+    /*pr_info("offset bpf_prog.tag:%ld\n", offsetof(struct bpf_prog, tag));*/
+    /*pr_info("offset bpf_prog.bpf_func:%ld\n", offsetof(struct bpf_prog, bpf_func));*/
+    /*pr_info("offset bpf_prog.insns:%ld\n", offsetof(struct bpf_prog, insns));*/
+    /*pr_info("offset bpf_prog.insnsi:%ld\n", offsetof(struct bpf_prog, insnsi));*/
+    pr_info("Sizeof send_queue:%ld\n", sizeof(struct send_queue));
+    /*pr_info("offset send_queue.name:%ld\n", offsetof(struct send_queue, name));*/
+    /*pr_info("offset send_queue.napi:%ld\n", offsetof(struct send_queue, napi));*/
+    pr_info("Sizeof page_struct:%ld\n", sizeof(struct page));
+    /*pr_info("offset page_struct.private:%ld\n", offsetof(struct page, private));*/
+    /*pr_info("offset page_struct.pmd_huge_pte:%ld\n", offsetof(struct page, pmd_huge_pte));*/
+    pr_info("Sizeof receive_queue:%ld\n", sizeof(struct receive_queue));
+    pr_info("offset receive_queue.vq:%ld\n", offsetof(struct receive_queue, vq));
+    pr_info("offset receive_queue.napi:%ld\n", offsetof(struct receive_queue, napi));
+    pr_info("offset receive_queue.xdp_prog:%ld\n", offsetof(struct receive_queue, xdp_prog));
+    pr_info("offset receive_queue.stats:%ld\n", offsetof(struct receive_queue, stats));
+    pr_info("offset receive_queue.pages:%ld\n", offsetof(struct receive_queue, pages));
+    pr_info("offset receive_queue.mrg_avg_pkt_len:%ld\n", offsetof(struct receive_queue, mrg_avg_pkt_len));
+    pr_info("offset receive_queue.alloc_frag:%ld\n", offsetof(struct receive_queue, alloc_frag));
+    pr_info("offset receive_queue.sg:%ld\n", offsetof(struct receive_queue, sg));
+    pr_info("offset receive_queue.xdp_rxq:%ld\n", offsetof(struct receive_queue, xdp_rxq));
+    pr_info("Sizeof scatterlist:%ld\n", sizeof(struct scatterlist));
 
 	ret = cpuhp_setup_state_multi(CPUHP_AP_ONLINE_DYN, "virtio/net:online",
 				      virtnet_cpu_online,

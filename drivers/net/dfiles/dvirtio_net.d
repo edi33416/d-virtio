@@ -7,6 +7,11 @@ import device_h;
 import mutex_h;
 import kobject_h : kobject;
 import net_device_h;
+import sk_buff_h : sk_buff;
+import bpf_prog_h : bpf_prog;
+import send_queue_h : send_queue, scatterlist;
+import page_h : page;
+import receive_queue_h : receive_queue;
 
 pragma(msg, "Sizeof napi_struct: ", napi_struct.sizeof);
 pragma(msg, "Sizeof virtqueue: ", virtqueue.sizeof);
@@ -29,7 +34,41 @@ pragma(msg, "Sizeof atomic_t:", atomic_t.sizeof);
 pragma(msg, "Sizeof atomic_long_t:", atomic_long_t.sizeof);
 pragma(msg, "Sizeof timer_list:", timer_list.sizeof);
 pragma(msg, "Sizeof net_device_stats:", net_device_stats.sizeof);
-
+pragma(msg, "Sizeof sk_buff:", sk_buff.sizeof);
+//pragma(msg, "Offsetof sk_buff.csum:", sk_buff.csum.offsetof);
+//pragma(msg, "Offsetof sk_buff.queue_mapping:", sk_buff.queue_mapping.offsetof);
+//pragma(msg, "Offsetof sk_buff.headers_start:", sk_buff.headers_start.offsetof);
+//pragma(msg, "Offsetof sk_buff.cb:", sk_buff.cb.offsetof);
+//pragma(msg, "Offsetof sk_buff.tcp_tsorted_anchor:", sk_buff.tcp_tsorted_anchor.offsetof);
+//pragma(msg, "Offsetof sk_buff.len:", sk_buff.len.offsetof);
+//pragma(msg, "Offsetof sk_buff.data_len:", sk_buff.data_len.offsetof);
+//pragma(msg, "Offsetof sk_buff.mac_len:", sk_buff.mac_len.offsetof);
+//pragma(msg, "Offsetof sk_buff.hdr_len:", sk_buff.hdr_len.offsetof);
+//pragma(msg, "Offsetof sk_buff.priority:", sk_buff.priority.offsetof);
+//pragma(msg, "Offsetof sk_buff.mac_header:", sk_buff.mac_header.offsetof);
+//pragma(msg, "Offsetof sk_buff.headers_end:", sk_buff.headers_end.offsetof);
+pragma(msg, "Sizeof bpf_prog:", bpf_prog.sizeof);
+//pragma(msg, "Offsetof bpf_prog.tag:", bpf_prog.tag.offsetof);
+//pragma(msg, "Offsetof bpf_prog.bpf_func:", bpf_prog.bpf_func.offsetof);
+//pragma(msg, "Offsetof bpf_prog.insns:", bpf_prog.dummy_anon_union_i.offsetof);
+//pragma(msg, "Offsetof bpf_prog.insnsi:", bpf_prog.dummy_anon_union_i.offsetof);
+pragma(msg, "Sizeof send_queue:", send_queue.sizeof);
+//pragma(msg, "Offsetof send_queue.name:", send_queue.name.offsetof);
+//pragma(msg, "Offsetof send_queue.napi:", send_queue.napi.offsetof);
+pragma(msg, "Sizeof page_struct:", page.sizeof);
+//pragma(msg, "Offsetof page_struct.private:", page.d_alias_private.offsetof);
+//pragma(msg, "Offsetof page_struct.pmd_huge_pte:", page.pmd_huge_pte.offsetof);
+pragma(msg, "Sizeof receive_queue:", receive_queue.sizeof);
+pragma(msg, "Offsetof receive_queue.vq:", receive_queue.vq.offsetof);
+pragma(msg, "Offsetof receive_queue.napi:", receive_queue.napi.offsetof);
+pragma(msg, "Offsetof receive_queue.xdp_prog:", receive_queue.xdp_prog.offsetof);
+pragma(msg, "Offsetof receive_queue.stats:", receive_queue.stats.offsetof);
+pragma(msg, "Offsetof receive_queue.pages:", receive_queue.pages.offsetof);
+pragma(msg, "Offsetof receive_queue.mrg_avg_pkt_len:", receive_queue.mrg_avg_pkt_len.offsetof);
+pragma(msg, "Offsetof receive_queue.alloc_frag:", receive_queue.alloc_frag.offsetof);
+pragma(msg, "Offsetof receive_queue.sq:", receive_queue.sg.offsetof);
+pragma(msg, "Offsetof receive_queue.xdp_rxq:", receive_queue.xdp_rxq.offsetof);
+pragma(msg, "Sizeof scatterlist:", scatterlist.sizeof);
 
 
 extern(C) int txq2vq(int txq) {
@@ -120,4 +159,9 @@ extern(C) bool virtnet_fail_on_feature(virtio_device *vdev, uint fbit,
     return true;
 }
 
+struct virtio_net_hdr_mrg_rxbuf;
 
+extern(C) virtio_net_hdr_mrg_rxbuf *skb_vnet_hdr(sk_buff *skb)
+{
+	return cast(virtio_net_hdr_mrg_rxbuf *)skb.cb;
+}
