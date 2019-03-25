@@ -1,17 +1,65 @@
 import core.stdc.config : c_ulong;
-
 import mutex_h : BITS_PER_LONG;
 import net_device_h : net_device;
 import napi_struct_h : rb_node, ktime_t;
 import list_head_h : list_head;
 import kobject_h : refcount_t;
-
+import spinlock_types_h : atomic_t;
+import send_queue_h : MAX_SKB_FRAGS, PAGE_SIZE;
 import std.bitmanip : bitfields;
+import page_h : page;
 
 struct sock;
 struct sec_path;
 struct nf_bridge_info;
 
+struct skb_shared_hwtstamps {
+    ktime_t hwtstamp;
+}
+
+struct dstruct_page_pointer {
+    page *p;
+}
+
+struct skb_frag_struct {
+    dstruct_page_pointer page;
+    static if ((BITS_PER_LONG > 32) || (PAGE_SIZE >= 65536)) {
+        uint page_offset;
+        uint size;
+    }
+    else {
+        ushort page_offset;
+        ushort size;
+    }
+}
+
+alias skb_frag_t = skb_frag_struct;
+
+struct skb_shared_info {
+    ubyte __unused;
+    ubyte meta_len;
+    ubyte nr_frags;
+    ubyte tx_flags;
+    ushort gso_size;
+    /* Warning: this field is not always filled in (UFO)! */
+    ushort gso_segs;
+    sk_buff *frag_list;
+    skb_shared_hwtstamps hwtstamps;
+    uint gso_type;
+    uint tskey;
+
+    /*
+     * Warning : all fields before dataref are cleared in __alloc_skb()
+     */
+    atomic_t dataref;
+
+    /* Intermediate layers must ensure that destructor_arg
+     * remains valid until skb destructor */
+    void * destructor_arg;
+
+    /* must be last field, see pskb_expand_head() */
+    skb_frag_t[MAX_SKB_FRAGS] frags;
+}
 
 static if (BITS_PER_LONG > 32)
     enum NET_SKBUFF_DATA_USES_OFFSET = 1;

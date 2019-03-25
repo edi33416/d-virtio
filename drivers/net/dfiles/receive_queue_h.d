@@ -21,11 +21,7 @@ struct page_frag {
 }
 
 struct virtnet_rq_stats {
-    static if (BITS_PER_LONG == 32) {
-        version(CONFIG_SMP) {
-            u64_stats_sync syncp;
-        }
-    }
+    u64_stats_sync[0] syncp;
     ulong packets;
     ulong bytes;
     ulong drops;
@@ -34,6 +30,35 @@ struct virtnet_rq_stats {
     ulong xdp_redirects;
     ulong xdp_drops;
     ulong kicks;
+}
+
+enum xdp_action {
+    XDP_ABORTED = 0,
+    XDP_DROP,
+    XDP_PASS,
+    XDP_TX,
+    XDP_REDIRECT,
+}
+
+struct xdp_buff {
+    void *data;
+    void *data_end;
+    void *data_meta;
+    void *data_hard_start;
+    c_ulong handle;
+    xdp_rxq_info *rxq;
+}
+
+struct xdp_frame {
+    void *data;
+    ushort len;
+    ushort headroom;
+    ushort metasize;
+    /* Lifetime of xdp_rxq_info is limited to NAPI/enqueue time,
+     * while mem info is valid on remote CPU.
+     */
+    xdp_mem_info mem;
+    net_device *dev_rx; /* used by cpumap */
 }
 
 struct xdp_mem_info {

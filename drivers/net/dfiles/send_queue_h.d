@@ -53,11 +53,16 @@ struct u64_stats_sync {
 }
 
 struct virtnet_sq_stats {
-    static if (BITS_PER_LONG == 32) {
-        version(CONFIG_SMP) {
-            u64_stats_sync syncp;
-        }
-    }
+    /* TODO on 32bit */
+    //static if (BITS_PER_LONG == 32)
+    //{
+        //u64_stats_sync syncp;
+    //}
+    //else
+    //{
+        //u64_stats_sync[0] syncp;
+    //}
+    u64_stats_sync[0] syncp;
     ulong packets;
     ulong bytes;
     ulong xdp_tx;
