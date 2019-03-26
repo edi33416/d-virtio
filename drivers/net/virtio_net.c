@@ -36,16 +36,29 @@
 #include <net/xdp.h>
 #include <net/net_failover.h>
 
+
+void abort(void);
+
 // D Bindings
 
+
+
 // Macros
+
+inline unsigned int __dbind__ALIGN(unsigned int len, unsigned int L1) {
+    return ALIGN(len, L1);
+}
+
+inline unsigned int __dbind__clamp_t(unsigned long len_read, uint buf_len, size_t diff) {
+    return clamp_t(unsigned int, len_read, buf_len, diff);
+}
 
 inline struct page * __dbind__alloc_page(gfp_t gfp_mask, unsigned int order) {
     return alloc_pages(gfp_mask, 0);
 }
 
 inline void * __dbind__page_address(const struct page *page) {
-    return lowmem_page_address(page);
+    return page_address(page);
 }
 
 inline void __dbind__dev_kfree_skb(struct sk_buff *skb) {
@@ -68,6 +81,32 @@ inline int __dbind__SKB_DATA_ALIGN(size_t x) {
 
 
 // End Macros
+void __assert (const char *__assertion, const char *__file, int __line)
+{
+    pr_info("%s\n", "Out of bounds, lele");
+    /*abort();*/
+}
+
+inline void __dbind__sg_set_buf(struct scatterlist *sg, const void *buf,
+        unsigned int buflen) {
+    return sg_set_buf(sg, buf, buflen);
+}
+
+inline void __dbind__set_ip_summed(struct sk_buff *skb, int value) {
+    skb->ip_summed = value;
+}
+
+inline bool __dbind__virtio_is_little_endian(struct virtio_device *vdev)
+{
+    return virtio_is_little_endian(vdev);
+}
+
+
+inline int __dbind__virtio_net_hdr_to_skb(struct sk_buff *skb,
+                    const struct virtio_net_hdr *hdr,
+                    bool little_endian) {
+    return virtio_net_hdr_to_skb(skb, hdr, little_endian);
+}
 
 inline bool __dbind__skb_can_coalesce(struct sk_buff *skb, int i,
         const struct page *page, int off) {
@@ -162,6 +201,10 @@ inline bool __dbind__virtio_has_feature(const struct virtio_device *vdev,
     return virtio_has_feature(vdev, fbit);
 }
 
+inline void __dbind__get_page(struct page *page) {
+    return get_page(page);
+}
+
 // End of D Bindings
 
 static int napi_weight = NAPI_POLL_WEIGHT;
@@ -194,6 +237,10 @@ DECLARE_EWMA(pkt_len, 0, 64)
 
 inline void __dbind__ewma_pkt_len_add(struct ewma_pkt_len *e, unsigned long val) {
     ewma_pkt_len_add(e, val);
+}
+
+inline void __dbind__ewma_pkt_len_read(struct ewma_pkt_len *e) {
+    ewma_pkt_len_read(e);
 }
 
 #define VIRTNET_DRIVER_VERSION "1.0.0"
@@ -495,159 +542,29 @@ struct sk_buff *receive_mergeable(struct net_device *dev,
                      struct virtnet_rq_stats *stats);
 
 
-static void receive_buf(struct virtnet_info *vi, struct receive_queue *rq,
-			void *buf, unsigned int len, void **ctx,
-			unsigned int *xdp_xmit,
-			struct virtnet_rq_stats *stats)
-{
-	struct net_device *dev = vi->dev;
-	struct sk_buff *skb;
-	struct virtio_net_hdr_mrg_rxbuf *hdr;
+void receive_buf(struct virtnet_info *vi, struct receive_queue *rq,
+            void *buf, unsigned int len, void **ctx,
+            unsigned int *xdp_xmit,
+            struct virtnet_rq_stats *stats);
 
-	if (unlikely(len < vi->hdr_len + ETH_HLEN)) {
-		pr_debug("%s: short packet %i\n", dev->name, len);
-		dev->stats.rx_length_errors++;
-		if (vi->mergeable_rx_bufs) {
-			put_page(virt_to_head_page(buf));
-		} else if (vi->big_packets) {
-			give_pages(rq, buf);
-		} else {
-			put_page(virt_to_head_page(buf));
-		}
-		return;
-	}
-
-	if (vi->mergeable_rx_bufs)
-		skb = receive_mergeable(dev, vi, rq, buf, ctx, len, xdp_xmit,
-					stats);
-	else if (vi->big_packets)
-		skb = receive_big(dev, vi, rq, buf, len, stats);
-	else
-		skb = receive_small(dev, vi, rq, buf, ctx, len, xdp_xmit, stats);
-
-	if (unlikely(!skb))
-		return;
-
-	hdr = skb_vnet_hdr(skb);
-
-	if (hdr->hdr.flags & VIRTIO_NET_HDR_F_DATA_VALID)
-		skb->ip_summed = CHECKSUM_UNNECESSARY;
-
-	if (virtio_net_hdr_to_skb(skb, &hdr->hdr,
-				  virtio_is_little_endian(vi->vdev))) {
-		net_warn_ratelimited("%s: bad gso: type: %u, size: %u\n",
-				     dev->name, hdr->hdr.gso_type,
-				     hdr->hdr.gso_size);
-		goto frame_err;
-	}
-
-	skb->protocol = eth_type_trans(skb, dev);
-	pr_debug("Receiving skb proto 0x%04x len %i type %i\n",
-		 ntohs(skb->protocol), skb->len, skb->pkt_type);
-
-	napi_gro_receive(&rq->napi, skb);
-	return;
-
-frame_err:
-	dev->stats.rx_frame_errors++;
-	dev_kfree_skb(skb);
-}
 
 /* Unlike mergeable buffers, all buffers are allocated to the
  * same size, except for the headroom. For this reason we do
  * not need to use  mergeable_len_to_ctx here - it is enough
  * to store the headroom as the context ignoring the truesize.
  */
-static int add_recvbuf_small(struct virtnet_info *vi, struct receive_queue *rq,
-			     gfp_t gfp)
-{
-	struct page_frag *alloc_frag = &rq->alloc_frag;
-	char *buf;
-	unsigned int xdp_headroom = virtnet_get_headroom(vi);
-	void *ctx = (void *)(unsigned long)xdp_headroom;
-	int len = vi->hdr_len + VIRTNET_RX_PAD + GOOD_PACKET_LEN + xdp_headroom;
-	int err;
+int add_recvbuf_small(struct virtnet_info *vi, struct receive_queue *rq,
+        gfp_t gfp);
 
-	len = SKB_DATA_ALIGN(len) +
-	      SKB_DATA_ALIGN(sizeof(struct skb_shared_info));
-	if (unlikely(!skb_page_frag_refill(len, alloc_frag, gfp)))
-		return -ENOMEM;
 
-	buf = (char *)page_address(alloc_frag->page) + alloc_frag->offset;
-	get_page(alloc_frag->page);
-	alloc_frag->offset += len;
-	sg_init_one(rq->sg, buf + VIRTNET_RX_PAD + xdp_headroom,
-		    vi->hdr_len + GOOD_PACKET_LEN);
-	err = virtqueue_add_inbuf_ctx(rq->vq, rq->sg, 1, buf, ctx, gfp);
-	if (err < 0)
-		put_page(virt_to_head_page(buf));
-	return err;
-}
+int add_recvbuf_big(struct virtnet_info *vi, struct receive_queue *rq,
+        gfp_t gfp);
 
-static int add_recvbuf_big(struct virtnet_info *vi, struct receive_queue *rq,
-			   gfp_t gfp)
-{
-	struct page *first, *list = NULL;
-	char *p;
-	int i, err, offset;
 
-	sg_init_table(rq->sg, MAX_SKB_FRAGS + 2);
+unsigned int get_mergeable_buf_len(struct receive_queue *rq,
+                      struct ewma_pkt_len *avg_pkt_len,
+                      unsigned int room);
 
-	/* page in rq->sg[MAX_SKB_FRAGS + 1] is list tail */
-	for (i = MAX_SKB_FRAGS + 1; i > 1; --i) {
-		first = get_a_page(rq, gfp);
-		if (!first) {
-			if (list)
-				give_pages(rq, list);
-			return -ENOMEM;
-		}
-		sg_set_buf(&rq->sg[i], page_address(first), PAGE_SIZE);
-
-		/* chain new page in list head to match sg */
-		first->private = (unsigned long)list;
-		list = first;
-	}
-
-	first = get_a_page(rq, gfp);
-	if (!first) {
-		give_pages(rq, list);
-		return -ENOMEM;
-	}
-	p = page_address(first);
-
-	/* rq->sg[0], rq->sg[1] share the same page */
-	/* a separated rq->sg[0] for header - required in case !any_header_sg */
-	sg_set_buf(&rq->sg[0], p, vi->hdr_len);
-
-	/* rq->sg[1] for data packet, from offset */
-	offset = sizeof(struct padded_vnet_hdr);
-	sg_set_buf(&rq->sg[1], p + offset, PAGE_SIZE - offset);
-
-	/* chain first in list head */
-	first->private = (unsigned long)list;
-	err = virtqueue_add_inbuf(rq->vq, rq->sg, MAX_SKB_FRAGS + 2,
-				  first, gfp);
-	if (err < 0)
-		give_pages(rq, first);
-
-	return err;
-}
-
-static unsigned int get_mergeable_buf_len(struct receive_queue *rq,
-					  struct ewma_pkt_len *avg_pkt_len,
-					  unsigned int room)
-{
-	const size_t hdr_len = sizeof(struct virtio_net_hdr_mrg_rxbuf);
-	unsigned int len;
-
-	if (room)
-		return PAGE_SIZE - room;
-
-	len = hdr_len +	clamp_t(unsigned int, ewma_pkt_len_read(avg_pkt_len),
-				rq->min_buf_len, PAGE_SIZE - hdr_len);
-
-	return ALIGN(len, L1_CACHE_BYTES);
-}
 
 static int add_recvbuf_mergeable(struct virtnet_info *vi,
 				 struct receive_queue *rq, gfp_t gfp)

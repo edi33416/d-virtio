@@ -13,7 +13,7 @@ import send_queue_h : send_queue, scatterlist, virtnet_sq_stats, MAX_SKB_FRAGS, 
        u64_stats_sync;
 import page_h : dstruct_page = page;
 import receive_queue_h : receive_queue, virtnet_rq_stats, xdp_frame, xdp_buff, xdp_action,
-       ewma_pkt_len;
+       ewma_pkt_len, page_frag;
 import control_buf_h : control_buf;
 import virtnet_info_h : virtnet_info;
 import cache_h : L1_CACHE_BYTES;
@@ -21,28 +21,28 @@ import std.algorithm.comparison : max, min;
 import core.stdc.string : memcpy, memset;
 import gfp_h;
 
-pragma(msg, "Sizeof napi_struct: ", napi_struct.sizeof);
-pragma(msg, "Sizeof virtqueue: ", virtqueue.sizeof);
-pragma(msg, "Sizeof virtio_device: ", virtio_device.sizeof);
-pragma(msg, "Sizeof bool: ", bool.sizeof);
-pragma(msg, "Sizeof spinlock_t:", spinlock_t.sizeof);
-pragma(msg, "Sizeof device:", device.sizeof);
-pragma(msg, "Sizeof virtio-device_id:", virtio_device_id.sizeof);
-pragma(msg, "Sizeof mutex:", mutex.sizeof);
-pragma(msg, "Sizeof kobject:", kobject.sizeof);
-pragma(msg, "Sizeof dev_links_info :", dev_links_info.sizeof);
-pragma(msg, "Sizeof dev_pm_info:", dev_pm_info.sizeof);
-pragma(msg, "Sizeof dev_archdata:", dev_archdata.sizeof);
-pragma(msg, "Sizeof klist_node:", klist_node.sizeof);
-pragma(msg, "Sizeof net_device:", net_device.sizeof);
-pragma(msg, "Sizeof netdev_tc_txq:", netdev_tc_txq.sizeof);
-pragma(msg, "Sizeof possible_net_t:", possible_net_t.sizeof);
-pragma(msg, "Sizeof netdev_hw_addr_list:", netdev_hw_addr_list.sizeof);
-pragma(msg, "Sizeof atomic_t:", atomic_t.sizeof);
-pragma(msg, "Sizeof atomic_long_t:", atomic_long_t.sizeof);
-pragma(msg, "Sizeof timer_list:", timer_list.sizeof);
-pragma(msg, "Sizeof net_device_stats:", net_device_stats.sizeof);
-pragma(msg, "Sizeof sk_buff:", sk_buff.sizeof);
+//pragma(msg, "Sizeof napi_struct: ", napi_struct.sizeof);
+//pragma(msg, "Sizeof virtqueue: ", virtqueue.sizeof);
+//pragma(msg, "Sizeof virtio_device: ", virtio_device.sizeof);
+//pragma(msg, "Sizeof bool: ", bool.sizeof);
+//pragma(msg, "Sizeof spinlock_t:", spinlock_t.sizeof);
+//pragma(msg, "Sizeof device:", device.sizeof);
+//pragma(msg, "Sizeof virtio-device_id:", virtio_device_id.sizeof);
+//pragma(msg, "Sizeof mutex:", mutex.sizeof);
+//pragma(msg, "Sizeof kobject:", kobject.sizeof);
+//pragma(msg, "Sizeof dev_links_info :", dev_links_info.sizeof);
+//pragma(msg, "Sizeof dev_pm_info:", dev_pm_info.sizeof);
+//pragma(msg, "Sizeof dev_archdata:", dev_archdata.sizeof);
+//pragma(msg, "Sizeof klist_node:", klist_node.sizeof);
+//pragma(msg, "Sizeof net_device:", net_device.sizeof);
+//pragma(msg, "Sizeof netdev_tc_txq:", netdev_tc_txq.sizeof);
+//pragma(msg, "Sizeof possible_net_t:", possible_net_t.sizeof);
+//pragma(msg, "Sizeof netdev_hw_addr_list:", netdev_hw_addr_list.sizeof);
+//pragma(msg, "Sizeof atomic_t:", atomic_t.sizeof);
+//pragma(msg, "Sizeof atomic_long_t:", atomic_long_t.sizeof);
+//pragma(msg, "Sizeof timer_list:", timer_list.sizeof);
+//pragma(msg, "Sizeof net_device_stats:", net_device_stats.sizeof);
+//pragma(msg, "Sizeof sk_buff:", sk_buff.sizeof);
 //pragma(msg, "Offsetof sk_buff.csum:", sk_buff.csum.offsetof);
 //pragma(msg, "Offsetof sk_buff.queue_mapping:", sk_buff.queue_mapping.offsetof);
 //pragma(msg, "Offsetof sk_buff.headers_start:", sk_buff.headers_start.offsetof);
@@ -55,18 +55,18 @@ pragma(msg, "Sizeof sk_buff:", sk_buff.sizeof);
 //pragma(msg, "Offsetof sk_buff.priority:", sk_buff.priority.offsetof);
 //pragma(msg, "Offsetof sk_buff.mac_header:", sk_buff.mac_header.offsetof);
 //pragma(msg, "Offsetof sk_buff.headers_end:", sk_buff.headers_end.offsetof);
-pragma(msg, "Sizeof bpf_prog:", bpf_prog.sizeof);
+//pragma(msg, "Sizeof bpf_prog:", bpf_prog.sizeof);
 //pragma(msg, "Offsetof bpf_prog.tag:", bpf_prog.tag.offsetof);
 //pragma(msg, "Offsetof bpf_prog.bpf_func:", bpf_prog.bpf_func.offsetof);
 //pragma(msg, "Offsetof bpf_prog.insns:", bpf_prog.dummy_anon_union_i.offsetof);
 //pragma(msg, "Offsetof bpf_prog.insnsi:", bpf_prog.dummy_anon_union_i.offsetof);
-pragma(msg, "Sizeof send_queue:", send_queue.sizeof);
+//pragma(msg, "Sizeof send_queue:", send_queue.sizeof);
 //pragma(msg, "Offsetof send_queue.name:", send_queue.name.offsetof);
 //pragma(msg, "Offsetof send_queue.napi:", send_queue.napi.offsetof);
-pragma(msg, "Sizeof page_struct:", dstruct_page.sizeof);
+//pragma(msg, "Sizeof page_struct:", dstruct_page.sizeof);
 //pragma(msg, "Offsetof page_struct.private:", page.d_alias_private.offsetof);
 //pragma(msg, "Offsetof page_struct.pmd_huge_pte:", page.pmd_huge_pte.offsetof);
-pragma(msg, "Sizeof receive_queue:", receive_queue.sizeof);
+//pragma(msg, "Sizeof receive_queue:", receive_queue.sizeof);
 //pragma(msg, "Offsetof receive_queue.vq:", receive_queue.vq.offsetof);
 //pragma(msg, "Offsetof receive_queue.napi:", receive_queue.napi.offsetof);
 //pragma(msg, "Offsetof receive_queue.xdp_prog:", receive_queue.xdp_prog.offsetof);
@@ -76,13 +76,13 @@ pragma(msg, "Sizeof receive_queue:", receive_queue.sizeof);
 //pragma(msg, "Offsetof receive_queue.alloc_frag:", receive_queue.alloc_frag.offsetof);
 //pragma(msg, "Offsetof receive_queue.sq:", receive_queue.sg.offsetof);
 //pragma(msg, "Offsetof receive_queue.xdp_rxq:", receive_queue.xdp_rxq.offsetof);
-pragma(msg, "Sizeof scatterlist:", scatterlist.sizeof);
-pragma(msg, "Sizeof control_buf:", control_buf.sizeof);
-pragma(msg, "Sizeof virtnet_info:", virtnet_info.sizeof);
-pragma(msg, "Sizeof virtnet_sq_stats:", virtnet_sq_stats.sizeof);
-pragma(msg, "Offsetof virtnet_sq_stats.syncp:", virtnet_sq_stats.syncp.offsetof);
-pragma(msg, "Sizeof virtnet_rq_stats:", virtnet_rq_stats.sizeof);
-pragma(msg, "Offsetof virtnet_rq_stats.syncp:", virtnet_rq_stats.syncp.offsetof);
+//pragma(msg, "Sizeof scatterlist:", scatterlist.sizeof);
+//pragma(msg, "Sizeof control_buf:", control_buf.sizeof);
+//pragma(msg, "Sizeof virtnet_info:", virtnet_info.sizeof);
+//pragma(msg, "Sizeof virtnet_sq_stats:", virtnet_sq_stats.sizeof);
+//pragma(msg, "Offsetof virtnet_sq_stats.syncp:", virtnet_sq_stats.syncp.offsetof);
+//pragma(msg, "Sizeof virtnet_rq_stats:", virtnet_rq_stats.sizeof);
+//pragma(msg, "Offsetof virtnet_rq_stats.syncp:", virtnet_rq_stats.syncp.offsetof);
 //pragma(msg, "Offsetof virtnet_info.rq:", virtnet_info.rq.offsetof);
 //pragma(msg, "Offsetof virtnet_info.refill:", virtnet_info.refill.offsetof);
 //pragma(msg, "Offsetof virtnet_info.failover:", virtnet_info.failover.offsetof);
@@ -111,11 +111,12 @@ enum ETH_HLEN = 14;    /* Total octets in header. */
 enum VLAN_HLEN = 4; /* The additional bytes required by VLAN */
 enum ETH_DATA_LEN = 1500;  /* Max. octets in payload */
 
+enum VIRTIO_NET_HDR_F_DATA_VALID = 2; /* Csum is valid */
 enum GOOD_PACKET_LEN = (ETH_HLEN + VLAN_HLEN + ETH_DATA_LEN);
 enum GOOD_COPY_LEN = 128;
 enum NET_IP_ALIGN = 0;
 enum NET_SKB_PAD = max(32, L1_CACHE_BYTES);
-
+enum CHECKSUM_UNNECESSARY = 1;
 enum VIRTNET_RX_PAD = (NET_IP_ALIGN + NET_SKB_PAD);
 
 /* Amount of XDP headroom to prepend to packets for use by xdp_adjust_head */
@@ -309,7 +310,7 @@ extern(C) void give_pages(receive_queue *rq, dstruct_page *page)
     dstruct_page *end;
 
     /* Find end of list, sew whole thing into vi->rq.pages. */
-    for (end = page; end.d_alias_private; end = cast(dstruct_page *)end.d_alias_private) 
+    for (end = page; end.d_alias_private; end = cast(dstruct_page *)end.d_alias_private)
     {
 
     }
@@ -324,7 +325,7 @@ extern(C) dstruct_page *get_a_page(receive_queue *rq, gfp_t gfp_mask)
 {
     dstruct_page *p = rq.pages;
 
-    if (p) {
+    if (p !is null) {
         rq.pages = cast(dstruct_page *)p.d_alias_private;
         /* clear private here, it is used to chain pages <] */
         p.d_alias_private = 0;
@@ -851,6 +852,7 @@ extern(C) bool __dbind__skb_can_coalesce(sk_buff *, int,
         const dstruct_page *, int);
 extern(C) void skb_coalesce_rx_frag(sk_buff *, int, int, uint);
 extern(C) void __dbind__ewma_pkt_len_add(ewma_pkt_len *e, c_ulong val);
+extern(C) c_ulong __dbind__ewma_pkt_len_read(ewma_pkt_len *e);
 
 extern(C) sk_buff *receive_mergeable( net_device *dev,
                     virtnet_info *vi,
@@ -1101,4 +1103,194 @@ err_buf:
     __dbind__dev_kfree_skb(head_skb);
 xdp_xmit:
     return null;
+}
+
+
+enum gro_result {
+    GRO_MERGED,
+    GRO_MERGED_FREE,
+    GRO_HELD,
+    GRO_NORMAL,
+    GRO_DROP,
+    GRO_CONSUMED,
+}
+
+alias gro_result_t = gro_result;
+
+extern(C) int __dbind__virtio_net_hdr_to_skb(sk_buff *,
+                    const virtio_net_hdr *,
+                    bool);
+extern(C) bool __dbind__virtio_is_little_endian(virtio_device *);
+extern(C) ushort eth_type_trans(sk_buff *, net_device *);
+extern(C) gro_result_t napi_gro_receive(napi_struct *,sk_buff *);
+extern(C) void __dbind__set_ip_summed(sk_buff *, int);
+
+extern(C) void receive_buf(virtnet_info *vi, receive_queue *rq,
+            void *buf, uint len, void **ctx,
+            uint *xdp_xmit,
+            virtnet_rq_stats *stats)
+{
+    net_device *dev = vi.dev;
+    sk_buff *skb;
+    virtio_net_hdr_mrg_rxbuf *hdr;
+
+    //if (unlikely(len < vi.hdr_len + ETH_HLEN)) {
+    if (len < vi.hdr_len + ETH_HLEN) {
+        //pr_debug("%s: short packet %i\n", dev.name, len);
+        dev.stats.rx_length_errors++;
+        if (vi.mergeable_rx_bufs) {
+            __dbind__put_page(__dbind__virt_to_head_page(buf));
+        } else if (vi.big_packets) {
+            give_pages(rq, cast(dstruct_page *)buf);
+        } else {
+            __dbind__put_page(__dbind__virt_to_head_page(buf));
+        }
+        return;
+    }
+
+    if (vi.mergeable_rx_bufs)
+        skb = receive_mergeable(dev, vi, rq, buf, ctx, len, xdp_xmit,
+                    stats);
+    else if (vi.big_packets)
+        skb = receive_big(dev, vi, rq, buf, len, stats);
+    else
+        skb = receive_small(dev, vi, rq, buf, ctx, len, xdp_xmit, stats);
+
+    //if (unlikely(!skb))
+    if (skb is null)
+        return;
+
+    hdr = skb_vnet_hdr(skb);
+
+    if (hdr.hdr.flags & VIRTIO_NET_HDR_F_DATA_VALID)
+        //skb.ip_summed = CHECKSUM_UNNECESSARY;
+        __dbind__set_ip_summed(skb, CHECKSUM_UNNECESSARY);
+        //skb.cloned= 0;
+        //dev.wol_enabled= 0;
+
+    if (__dbind__virtio_net_hdr_to_skb(skb, &hdr.hdr,
+                  __dbind__virtio_is_little_endian(vi.vdev))) {
+        //net_warn_ratelimited("%s: bad gso: type: %u, size: %u\n",
+                     //dev.name, hdr.hdr.gso_type,
+                     //hdr.hdr.gso_size);
+        goto frame_err;
+    }
+
+    skb.protocol = eth_type_trans(skb, dev);
+    //pr_debug("Receiving skb proto 0x%04x len %i type %i\n",
+         //ntohs(skb.protocol), skb.len, skb.pkt_type);
+
+    napi_gro_receive(&rq.napi, skb);
+    return;
+
+frame_err:
+    dev.stats.rx_frame_errors++;
+    __dbind__dev_kfree_skb(skb);
+}
+
+
+
+extern(C) void __dbind__get_page(dstruct_page *);
+extern(C) bool skb_page_frag_refill(uint sz, page_frag *, gfp_t);
+extern(C) int virtqueue_add_inbuf_ctx(virtqueue *,
+            scatterlist *, uint num,
+            void *, void *, gfp_t);
+enum ENOMEM = 12; /* Out of memory */
+
+extern(C) int add_recvbuf_small(virtnet_info *vi,receive_queue *rq,
+             gfp_t gfp)
+{
+    page_frag *alloc_frag = &rq.alloc_frag;
+    char *buf;
+    uint xdp_headroom = virtnet_get_headroom(vi);
+    void *ctx = cast(void *)(cast(c_ulong)(xdp_headroom));
+    int len = vi.hdr_len + VIRTNET_RX_PAD + GOOD_PACKET_LEN + xdp_headroom;
+    int err;
+
+    len = __dbind__SKB_DATA_ALIGN(len) +
+          __dbind__SKB_DATA_ALIGN(skb_shared_info.sizeof);
+    //if (unlikely(!skb_page_frag_refill(len, alloc_frag, gfp)))
+    if (!skb_page_frag_refill(len, alloc_frag, gfp))
+        return -ENOMEM;
+
+    buf = cast(char *)__dbind__page_address(alloc_frag.page) + alloc_frag.offset;
+    __dbind__get_page(alloc_frag.page);
+    alloc_frag.offset += len;
+    sg_init_one(rq.sg.ptr, buf + VIRTNET_RX_PAD + xdp_headroom,
+            vi.hdr_len + GOOD_PACKET_LEN);
+    err = virtqueue_add_inbuf_ctx(rq.vq, rq.sg.ptr, 1, buf, ctx, gfp);
+    if (err < 0)
+        __dbind__put_page(__dbind__virt_to_head_page(buf));
+    return err;
+}
+
+extern(C) void __dbind__sg_set_buf(scatterlist *, const void *, uint buflen);
+extern(C) void sg_init_table(scatterlist *, uint);
+extern(C) int virtqueue_add_inbuf(virtqueue *,
+            scatterlist *, uint,
+            void *,
+            gfp_t);
+
+extern(C) int add_recvbuf_big(virtnet_info *vi, receive_queue *rq,
+               gfp_t gfp)
+{
+    dstruct_page *first = null;
+    dstruct_page *list = null;
+    char *p;
+    int i, err, offset;
+
+    sg_init_table(rq.sg.ptr, MAX_SKB_FRAGS + 2);
+
+    for (i = MAX_SKB_FRAGS + 1; i > 1; --i) {
+        first = get_a_page(rq, gfp);
+        if (first is null) {
+            if (list !is null)
+                give_pages(rq, list);
+            return -ENOMEM;
+        }
+        __dbind__sg_set_buf(&rq.sg[i], __dbind__page_address(first), PAGE_SIZE);
+
+        first.d_alias_private = cast(c_ulong)list;
+        list = first;
+    }
+
+    first = get_a_page(rq, gfp);
+    if (first is null) {
+        give_pages(rq, list);
+        return -ENOMEM;
+    }
+    p = cast(char *)__dbind__page_address(first);
+
+    __dbind__sg_set_buf(&rq.sg[0], p, vi.hdr_len);
+
+    offset = padded_vnet_hdr.sizeof;
+    __dbind__sg_set_buf(&rq.sg[1], p + offset, PAGE_SIZE - offset);
+
+    first.d_alias_private = cast(c_ulong)list;
+    err = virtqueue_add_inbuf(rq.vq, rq.sg.ptr, MAX_SKB_FRAGS + 2,
+                  first, gfp);
+    if (err < 0)
+        give_pages(rq, first);
+
+    return err;
+}
+
+
+extern(C) uint __dbind__clamp_t(c_ulong, uint, size_t);
+extern(C) uint __dbind__ALIGN(uint len, uint L1);
+
+extern(C) uint get_mergeable_buf_len(receive_queue *rq,
+                      ewma_pkt_len *avg_pkt_len,
+                      uint room)
+{
+    const size_t hdr_len = virtio_net_hdr_mrg_rxbuf.sizeof;
+    uint len;
+
+    if (room)
+        return PAGE_SIZE - room;
+
+    len = cast(uint)(hdr_len + __dbind__clamp_t(__dbind__ewma_pkt_len_read(avg_pkt_len),
+                rq.min_buf_len, PAGE_SIZE - hdr_len));
+
+    return __dbind__ALIGN(len, L1_CACHE_BYTES);
 }
