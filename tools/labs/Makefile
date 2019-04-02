@@ -28,7 +28,7 @@ skels/Kbuild:
 
 copy: build $(YOCTO_IMAGE)
 	if  [ -e qemu.mon ]; then exit 1; fi
-	mv ../../drivers/net/virtio_net_tmp.ko skels
+	cp ../../drivers/net/virtio_net_tmp.ko skels
 	cp ../../drivers/net/dfiles/test.sh skels
 	mkdir $(TEMPDIR)
 	sudo mount -t ext4 -o loop $(YOCTO_IMAGE) $(TEMPDIR)

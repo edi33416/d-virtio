@@ -54,3 +54,29 @@ struct virtqueue {
     void *priv;
 }
 
+enum ETH_ALEN = 6;
+
+align(1) struct virtio_net_config {
+	/* The config defining mac address (if VIRTIO_NET_F_MAC) */
+	ubyte[ETH_ALEN] mac;
+	/* See VIRTIO_NET_F_STATUS and VIRTIO_NET_S_* above */
+	ushort status;
+	/* Maximum number of each of transmit and receive queues;
+	 * see VIRTIO_NET_F_MQ and VIRTIO_NET_CTRL_MQ.
+	 * Legal values are between 1 and 0x8000
+	 */
+	ushort max_virtqueue_pairs;
+	/* Default maximum transmit unit advice */
+	ushort mtu;
+	/*
+	 * speed, in units of 1Mb. All values 0 to INT_MAX are legal.
+	 * Any other value stands for unknown.
+	 */
+	uint speed;
+	/*
+	 * 0x00 - half duplex
+	 * 0x01 - full duplex
+	 * Any other value stands for unknown.
+	 */
+	ubyte duplex;
+};
