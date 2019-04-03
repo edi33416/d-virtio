@@ -19,5 +19,13 @@ else
 }
 
 
+version(CONFIG_NR_CPUS)
+{
+    enum CONFIG_NR_CPUS = 8;
+}
+else {
+    enum CONFIG_NR_CPUS = 1;
+}
 
-
+/* Places which use this should consider cpumask_var_t. */
+enum NR_CPUS = CONFIG_NR_CPUS;

@@ -7,6 +7,7 @@ import device_h : device, timer_list;
 import cache_h;
 import uapi_h;
 import link_state_h : reg_state_alias, rtnl_link_state_alias;
+import bpf_prog_h : rcu_head;
 
 enum GSO_MAX_SIZE = 65536;
 enum GSO_MAX_SEGS = 65535;
@@ -67,6 +68,22 @@ struct pcpu_dstats;
 struct pcpu_vstats;
 struct net;
 alias net_alias = net;
+
+struct netdev_hw_addr {
+    list_head	list;
+    ubyte[MAX_ADDR_LEN] addr;
+    ubyte type;
+//#define NETDEV_HW_ADDR_T_LAN		1
+//#define NETDEV_HW_ADDR_T_SAN		2
+//#define NETDEV_HW_ADDR_T_SLAVE		3
+//#define NETDEV_HW_ADDR_T_UNICAST	4
+//#define NETDEV_HW_ADDR_T_MULTICAST	5
+	bool			global_use;
+	int			sync_cnt;
+	int			refcount;
+	int			synced;
+	rcu_head		d_alias_rcu_head;
+}
 
 struct netdev_tc_txq {
     ushort count;

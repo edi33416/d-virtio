@@ -80,3 +80,14 @@ align(1) struct virtio_net_config {
 	 */
 	ubyte duplex;
 };
+
+
+
+align(1) struct virtio_net_ctrl_mac {
+    uint entries;
+    //ubyte[ETH_ALEN][] macs; // Ce trebuia sa fie
+    ubyte[0] macs;
+}
+
+
+pragma(msg, "size structura vietii:", virtio_net_ctrl_mac.sizeof);
