@@ -80,9 +80,9 @@ pipe2.out: pipe1.in
 	ln $< $@
 
 disk1.img:
-	qemu-img create -f raw $@ 100M
+	qemu-img create -f raw $@ 2000M
 disk2.img:
-	qemu-img create -f raw $@ 100M
+	qemu-img create -f raw $@ 2000M
 
 clean::
 	rm -f .modinst disk1.img disk2.img
