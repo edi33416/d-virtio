@@ -1,5 +1,6 @@
 CC=ldc2
-CFLAGS=-betterC -c
+#CFLAGS=-betterC -c -relocation-model=static
+CFLAGS=-betterC -c -g -release
 ext=.o_shipped
 CC_PATH=~/dlang/ldc-1.14.0/activate
 SHELL := /bin/bash
@@ -22,5 +23,4 @@ print:
 
 clean:
 	cd .. ; rm -f $(TAR); rm -f virtio_net_tmp* virtio_net.o
-
 

@@ -13,6 +13,7 @@ struct sock;
 struct sec_path;
 struct nf_bridge_info;
 
+
 struct skb_shared_hwtstamps {
     ktime_t hwtstamp;
 }
@@ -308,6 +309,11 @@ struct sk_buff {
         ubyte, "encap_hdr_csum", 1,
         ubyte, "csum_valid", 1,
         ));
+
+
+
+
+
     mixin(getBitFields());
 
 

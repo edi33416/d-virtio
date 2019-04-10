@@ -7,14 +7,14 @@ ZIMAGE=$(KDIR)/arch/$(ARCH)/boot/$(b)zImage
 KCONFIG=$(KDIR)/.config
 NTTCP=$(KDIR)/tools/labs/templates/assignments/6-e100/nttcp
 
-YOCTO_URL=http://downloads.yoctoproject.org/releases/yocto/yocto-2.3/machines/qemu/qemux86-64/
-YOCTO_IMAGE=core-image-minimal-qemux86-64.ext4
+YOCTO_URL=http://downloads.yoctoproject.org/releases/yocto/yocto-2.3/machines/qemu/qemux86-64
+#YOCTO_IMAGE=core-image-minimal-qemux86-64.ext4
 #YOCTO_URL=http://downloads.yoctoproject.org/releases/yocto/yocto-2.3/machines/qemu/qemu$(ARCH)/
 #YOCTO_IMAGE=core-image-minimal-qemu$(ARCH).ext4
 #YOCTO_IMAGE=core-image-minimal-dev-qemu$(ARCH).ext4
-#YOCTO_IMAGE=core-image-sato-dev-qemu$(ARCH).ext4
+#YOCTO_IMAGE=core-image-sato-dev-qemux86-64.ext4
 #YOCTO_IMAGE=core-image-sato-qemu$(ARCH).ext4
-#YOCTO_IMAGE=core-image-sato-sdk-qemu$(ARCH).ext4
+YOCTO_IMAGE=core-image-sato-sdk-qemux86-64.ext4
 
 QEMU_OPTS = -kernel $(ZIMAGE) \
 	-device virtio-serial \

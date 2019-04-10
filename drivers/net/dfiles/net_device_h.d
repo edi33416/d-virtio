@@ -5,9 +5,9 @@ import mutex_h : atomic_long_t;
 import spinlock_types_h : atomic_t, spinlock_t;
 import device_h : device, timer_list;
 import cache_h;
-import uapi_h;
 import link_state_h : reg_state_alias, rtnl_link_state_alias;
-import bpf_prog_h : rcu_head;
+import bpf_prog_h : rcu_head, bpf_prog;
+import uapi_h : IFNAMSIZ;
 
 enum GSO_MAX_SIZE = 65536;
 enum GSO_MAX_SEGS = 65535;
@@ -42,7 +42,6 @@ struct wireless_dev;
 struct wpan_dev;
 struct mpls_dev;
 struct netdev_rx_queue;
-struct bpf_prog;
 struct rx_handler_func_t;
 struct mini_Qdisc;
 struct netdev_queue;
@@ -181,8 +180,8 @@ struct net_device {
         iw_public_data	*wireless_data;
     }
 
-    const net_device_ops *netdev_ops;
-    const ethtool_ops_alias *ethtool_ops;
+    const(net_device_ops) * netdev_ops;
+    const(ethtool_ops_alias) *ethtool_ops;
 
     version(CONFIG_NET_SWITCHDEV) {
         const switchdev_ops *switchdev_ops;
@@ -386,7 +385,7 @@ struct net_device {
 
     device dev;
     const attribute_group*[4] sysfs_groups;
-    const attribute_group *sysfs_rx_queue_group;
+    const(attribute_group) *sysfs_rx_queue_group;
 
     const rtnl_link_ops_alias *rtnl_link_ops;
 
@@ -420,3 +419,202 @@ struct net_device {
             uint, "", 7
          ));
 }
+
+
+
+struct bpf_prog_offload_ops;
+struct xdp_umem;
+
+struct xsk {
+    xdp_umem *umem; /* out for query*/
+    ushort queue_id; /* in for query */
+}
+
+enum bpf_netdev_command {
+	/* Set or clear a bpf program used in the earliest stages of packet
+	 * rx. The prog will have been loaded as BPF_PROG_TYPE_XDP. The callee
+	 * is responsible for calling bpf_prog_put on any old progs that are
+	 * stored. In case of error, the callee need not release the new prog
+	 * reference, but on success it takes ownership and must bpf_prog_put
+	 * when it is no longer used.
+	 */
+	XDP_SETUP_PROG,
+	XDP_SETUP_PROG_HW,
+	XDP_QUERY_PROG,
+	XDP_QUERY_PROG_HW,
+	/* BPF program for offload callbacks, invoked at program load time. */
+	BPF_OFFLOAD_VERIFIER_PREP,
+	BPF_OFFLOAD_TRANSLATE,
+	BPF_OFFLOAD_DESTROY,
+	BPF_OFFLOAD_MAP_ALLOC,
+	BPF_OFFLOAD_MAP_FREE,
+	XDP_QUERY_XSK_UMEM,
+	XDP_SETUP_XSK_UMEM,
+};
+struct bpf_offloaded_map;
+
+enum NETLINK_MAX_COOKIE_LEN = 20;
+
+struct nlattr {
+    ushort nla_len;
+    ushort nla_type;
+}
+
+struct netlink_ext_ack {
+    const char *_msg;
+    const nlattr *bad_attr;
+    ubyte[NETLINK_MAX_COOKIE_LEN] cookie;
+    ubyte cookie_len;
+}
+
+
+struct netdev_bpf {
+    bpf_netdev_command command;
+    union {
+        /* XDP_SETUP_PROG */
+        struct {
+            uint flags;
+            bpf_prog *prog;
+            netlink_ext_ack *extack;
+        };
+        /* XDP_QUERY_PROG, XDP_QUERY_PROG_HW */
+        struct {
+            uint prog_id;
+            /* flags with which program was installed */
+            uint prog_flags;
+        };
+        /* BPF_OFFLOAD_VERIFIER_PREP */
+        struct {
+            bpf_prog *prog_1;
+            const bpf_prog_offload_ops *ops; /* callee set */
+        };
+        /* BPF_OFFLOAD_TRANSLATE, BPF_OFFLOAD_DESTROY */
+        struct {
+            bpf_prog *prog_2;
+        };
+        /* BPF_OFFLOAD_MAP_ALLOC, BPF_OFFLOAD_MAP_FREE */
+        struct {
+            bpf_offloaded_map *offmap;
+        };
+        /* XDP_QUERY_XSK_UMEM, XDP_SETUP_XSK_UMEM */
+        xsk xsk_struct;
+    };
+};
+
+
+pragma(msg, "sizenetdev: ", netdev_bpf.sizeof);
+
+
+
+enum gogu{
+	NETIF_F_SG_BIT,			/* Scatter/gather IO. */
+	NETIF_F_IP_CSUM_BIT,		/* Can checksum TCP/UDP over IPv4. */
+	__UNUSED_NETIF_F_1,
+	NETIF_F_HW_CSUM_BIT,		/* Can checksum all the packets. */
+	NETIF_F_IPV6_CSUM_BIT,		/* Can checksum TCP/UDP over IPV6 */
+	NETIF_F_HIGHDMA_BIT,		/* Can DMA to high memory. */
+	NETIF_F_FRAGLIST_BIT,		/* Scatter/gather IO. */
+	NETIF_F_HW_VLAN_CTAG_TX_BIT,	/* Transmit VLAN CTAG HW acceleration */
+	NETIF_F_HW_VLAN_CTAG_RX_BIT,	/* Receive VLAN CTAG HW acceleration */
+	NETIF_F_HW_VLAN_CTAG_FILTER_BIT,/* Receive filtering on VLAN CTAGs */
+	NETIF_F_VLAN_CHALLENGED_BIT,	/* Device cannot handle VLAN packets */
+	NETIF_F_GSO_BIT,		/* Enable software GSO. */
+	NETIF_F_LLTX_BIT,		/* LockLess TX - deprecated. Please */
+					/* do not use LLTX in new drivers */
+	NETIF_F_NETNS_LOCAL_BIT,	/* Does not change network namespaces */
+	NETIF_F_GRO_BIT,		/* Generic receive offload */
+	NETIF_F_LRO_BIT,		/* large receive offload */
+
+	/**/NETIF_F_GSO_SHIFT,		/* keep the order of SKB_GSO_* bits */
+	NETIF_F_TSO_BIT			/* ... TCPv4 segmentation */
+		= NETIF_F_GSO_SHIFT,
+	NETIF_F_GSO_ROBUST_BIT,		/* ... ->SKB_GSO_DODGY */
+	NETIF_F_TSO_ECN_BIT,		/* ... TCP ECN support */
+	NETIF_F_TSO_MANGLEID_BIT,	/* ... IPV4 ID mangling allowed */
+	NETIF_F_TSO6_BIT,		/* ... TCPv6 segmentation */
+	NETIF_F_FSO_BIT,		/* ... FCoE segmentation */
+	NETIF_F_GSO_GRE_BIT,		/* ... GRE with TSO */
+	NETIF_F_GSO_GRE_CSUM_BIT,	/* ... GRE with csum with TSO */
+	NETIF_F_GSO_IPXIP4_BIT,		/* ... IP4 or IP6 over IP4 with TSO */
+	NETIF_F_GSO_IPXIP6_BIT,		/* ... IP4 or IP6 over IP6 with TSO */
+	NETIF_F_GSO_UDP_TUNNEL_BIT,	/* ... UDP TUNNEL with TSO */
+	NETIF_F_GSO_UDP_TUNNEL_CSUM_BIT,/* ... UDP TUNNEL with TSO & CSUM */
+	NETIF_F_GSO_PARTIAL_BIT,	/* ... Only segment inner-most L4
+					 *     in hardware and all other
+					 *     headers in software.
+					 */
+	NETIF_F_GSO_TUNNEL_REMCSUM_BIT, /* ... TUNNEL with TSO & REMCSUM */
+	NETIF_F_GSO_SCTP_BIT,		/* ... SCTP fragmentation */
+	NETIF_F_GSO_ESP_BIT,		/* ... ESP with TSO */
+	NETIF_F_GSO_UDP_BIT,		/* ... UFO, deprecated except tuntap */
+	NETIF_F_GSO_UDP_L4_BIT,		/* ... UDP payload GSO (not UFO) */
+	/**/NETIF_F_GSO_LAST =		/* last bit, see GSO_MASK */
+		NETIF_F_GSO_UDP_L4_BIT,
+
+	NETIF_F_FCOE_CRC_BIT,		/* FCoE CRC32 */
+	NETIF_F_SCTP_CRC_BIT,		/* SCTP checksum offload */
+	NETIF_F_FCOE_MTU_BIT,		/* Supports max FCoE MTU, 2158 bytes*/
+	NETIF_F_NTUPLE_BIT,		/* N-tuple filters supported */
+	NETIF_F_RXHASH_BIT,		/* Receive hashing offload */
+	NETIF_F_RXCSUM_BIT,		/* Receive checksumming offload */
+	NETIF_F_NOCACHE_COPY_BIT,	/* Use no-cache copyfromuser */
+	NETIF_F_LOOPBACK_BIT,		/* Enable loopback */
+	NETIF_F_RXFCS_BIT,		/* Append FCS to skb pkt data */
+	NETIF_F_RXALL_BIT,		/* Receive errored frames too */
+	NETIF_F_HW_VLAN_STAG_TX_BIT,	/* Transmit VLAN STAG HW acceleration */
+	NETIF_F_HW_VLAN_STAG_RX_BIT,	/* Receive VLAN STAG HW acceleration */
+	NETIF_F_HW_VLAN_STAG_FILTER_BIT,/* Receive filtering on VLAN STAGs */
+	NETIF_F_HW_L2FW_DOFFLOAD_BIT,	/* Allow L2 Forwarding in Hardware */
+
+	NETIF_F_HW_TC_BIT,		/* Offload TC infrastructure */
+	NETIF_F_HW_ESP_BIT,		/* Hardware ESP transformation offload */
+	NETIF_F_HW_ESP_TX_CSUM_BIT,	/* ESP with TX checksum offload */
+	NETIF_F_RX_UDP_TUNNEL_PORT_BIT, /* Offload of RX port for UDP tunnels */
+	NETIF_F_HW_TLS_TX_BIT,		/* Hardware TLS TX offload */
+	NETIF_F_HW_TLS_RX_BIT,		/* Hardware TLS RX offload */
+
+	NETIF_F_GRO_HW_BIT,		/* Hardware Generic receive offload */
+	NETIF_F_HW_TLS_RECORD_BIT,	/* Offload TLS record */
+
+	/*
+	 * Add your fresh new feature above and remember to update
+	 * netdev_features_strings[] in net/core/ethtool.c and maybe
+	 * some feature mask #defines below. Please also describe it
+	 * in Documentation/networking/netdev-features.txt.
+	 */
+
+	/**/NETDEV_FEATURE_COUNT
+};
+
+
+enum netdev_priv_flags {
+	IFF_802_1Q_VLAN			= 1<<0,
+	IFF_EBRIDGE			= 1<<1,
+	IFF_BONDING			= 1<<2,
+	IFF_ISATAP			= 1<<3,
+	IFF_WAN_HDLC			= 1<<4,
+	IFF_XMIT_DST_RELEASE		= 1<<5,
+	IFF_DONT_BRIDGE			= 1<<6,
+	IFF_DISABLE_NETPOLL		= 1<<7,
+	IFF_MACVLAN_PORT		= 1<<8,
+	IFF_BRIDGE_PORT			= 1<<9,
+	IFF_OVS_DATAPATH		= 1<<10,
+	IFF_TX_SKB_SHARING		= 1<<11,
+	IFF_UNICAST_FLT			= 1<<12,
+	IFF_TEAM_PORT			= 1<<13,
+	IFF_SUPP_NOFCS			= 1<<14,
+	IFF_LIVE_ADDR_CHANGE		= 1<<15,
+	IFF_MACVLAN			= 1<<16,
+	IFF_XMIT_DST_RELEASE_PERM	= 1<<17,
+	IFF_L3MDEV_MASTER		= 1<<18,
+	IFF_NO_QUEUE			= 1<<19,
+	IFF_OPENVSWITCH			= 1<<20,
+	IFF_L3MDEV_SLAVE		= 1<<21,
+	IFF_TEAM			= 1<<22,
+	IFF_RXFH_CONFIGURED		= 1<<23,
+	IFF_PHONY_HEADROOM		= 1<<24,
+	IFF_MACSEC			= 1<<25,
+	IFF_NO_RX_HANDLER		= 1<<26,
+	IFF_FAILOVER			= 1<<27,
+	IFF_FAILOVER_SLAVE		= 1<<28,
+};

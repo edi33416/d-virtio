@@ -14,15 +14,17 @@ static if(is(typeof(__GLIBC__)))
 }
 else
 {
-    static if (!is(typeof(__UAPI_DEF_IF_IFNAMSIZ)))
+    static if (!is(typeof(__UAPI_DEF_IF_IFNAMSIZ))) {
         enum __UAPI_DEF_IF_IFNAMSIZ = 1;
-
-
+    }
 }
 
 static if(is(typeof(__UAPI_DEF_IF_IFNAMSIZ)))
 {
     enum IFNAMSIZ = 16;
+}
+else {
+    enum IFNAMSIZ = 256;
 }
 
 struct ethtool_ringparam {
@@ -77,24 +79,25 @@ auto BITS_PER_TYPE(T)() {
     return T.sizeof * 8;
 }
 
-int __KERNEL_DIV_ROUND_UP(int n, int d) {
-    return (n + d - 1) / (d);
-}
 
 struct ethtool_link_ksettings {
     ethtool_link_settings base;
     link_modes link;
 }
 
-pragma(msg, "sizeof ethtool_link_ksettings: ", ethtool_link_ksettings.sizeof);
+//pragma(msg, "sizeof ethtool_link_ksettings: ", ethtool_link_ksettings.sizeof);
 
-struct link_modes {
-	c_ulong[__KERNEL_DIV_ROUND_UP(__ETHTOOL_LINK_MODE_MASK_NBITS, c_long.sizeof * 8)] supported;
-	c_ulong[__KERNEL_DIV_ROUND_UP(__ETHTOOL_LINK_MODE_MASK_NBITS, c_long.sizeof * 8)] advertising;
-	c_ulong[__KERNEL_DIV_ROUND_UP(__ETHTOOL_LINK_MODE_MASK_NBITS, c_long.sizeof * 8)] lp_advertising;
+int KERNEL_DIV_ROUND_UP__1(int n, int d) {
+    return (n + d - 1) / (d);
 }
 
-pragma(msg, "sizeof link_modes:", link_modes.sizeof);
+struct link_modes {
+	c_ulong[KERNEL_DIV_ROUND_UP__1(__ETHTOOL_LINK_MODE_MASK_NBITS, c_long.sizeof * 8)] supported;
+	c_ulong[KERNEL_DIV_ROUND_UP__1(__ETHTOOL_LINK_MODE_MASK_NBITS, c_long.sizeof * 8)] advertising;
+	c_ulong[KERNEL_DIV_ROUND_UP__1(__ETHTOOL_LINK_MODE_MASK_NBITS, c_long.sizeof * 8)] lp_advertising;
+}
+
+//pragma(msg, "sizeof link_modes:", link_modes.sizeof);
 
 enum __ETHTOOL_LINK_MODE_MASK_NBITS = (ethtool_link_mode_bit_indices.__ETHTOOL_LINK_MODE_LAST + 1);
 
@@ -120,7 +123,7 @@ struct ethtool_link_settings {
 	 */
 }
 
-pragma(msg, "sizeof ethtool_link_settings: ", ethtool_link_settings.sizeof);
+//pragma(msg, "sizeof ethtool_link_settings: ", ethtool_link_settings.sizeof);
 
 enum ethtool_link_mode_bit_indices {
 	ETHTOOL_LINK_MODE_10baseT_Half_BIT	= 0,
