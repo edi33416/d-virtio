@@ -1325,13 +1325,13 @@ int virtnet_find_vqs(struct virtnet_info *vi)
     const char **names;
     bool *ctx;
 
-     /*We expect 1 RX virtqueue followed by 1 TX virtqueue, followed by*/
-     /*possible N-1 RX/TX queue pairs used in multiqueue mode, followed by*/
-     /*possible control vq.*/
+     /*[>We expect 1 RX virtqueue followed by 1 TX virtqueue, followed by<]*/
+     /*[>possible N-1 RX/TX queue pairs used in multiqueue mode, followed by<]*/
+     /*[>possible control vq.<]*/
     total_vqs = vi->max_queue_pairs * 2 +
             virtio_has_feature(vi->vdev, VIRTIO_NET_F_CTRL_VQ);
 
-    /*[> Allocate space for find_vqs parameters <]*/
+    /*[>[> Allocate space for find_vqs parameters <]<]*/
     vqs = kcalloc(total_vqs, sizeof(*vqs), GFP_KERNEL);
     if (!vqs)
         goto err_vq;
@@ -1349,13 +1349,13 @@ int virtnet_find_vqs(struct virtnet_info *vi)
         ctx = NULL;
     }
 
-    /*[> Parameters for control virtqueue, if any <]*/
+    /*[>[> Parameters for control virtqueue, if any <]<]*/
     if (vi->has_cvq) {
         callbacks[total_vqs - 1] = NULL;
         names[total_vqs - 1] = "control";
     }
 
-    /*[> Allocate/initialize parameters for send/receive virtqueues <]*/
+    /*[>[> Allocate/initialize parameters for send/receive virtqueues <]<]*/
     for (i = 0; i < vi->max_queue_pairs; i++) {
         callbacks[rxq2vq(i)] = skb_recv_done;
         callbacks[txq2vq(i)] = skb_xmit_done;
@@ -1384,7 +1384,7 @@ int virtnet_find_vqs(struct virtnet_info *vi)
         vi->sq[i].vq = vqs[txq2vq(i)];
     }
 
-    /*[> run here: ret == 0. <]*/
+    /*[>[> run here: ret == 0. <]<]*/
 
 
 err_find:

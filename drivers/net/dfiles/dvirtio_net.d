@@ -162,7 +162,7 @@ struct virtnet_stat_desc {
 
 //pragma(msg, "stat_desc sizeof:", virtnet_stat_desc.sizeof);
 
-immutable enum virtnet_stat_desc[5] virtnet_sq_stats_desc = [
+__gshared immutable enum virtnet_stat_desc[] virtnet_sq_stats_desc = [
     { "packets", virtnet_sq_stats.packets.offsetof },
     { "bytes", virtnet_sq_stats.bytes.offsetof },
     { "xdp_tx", virtnet_sq_stats.xdp_tx.offsetof },
@@ -170,7 +170,7 @@ immutable enum virtnet_stat_desc[5] virtnet_sq_stats_desc = [
     { "kicks",  virtnet_sq_stats.kicks.offsetof},
 ];
 
-immutable enum virtnet_stat_desc[8] virtnet_rq_stats_desc = [
+__gshared immutable enum virtnet_stat_desc[] virtnet_rq_stats_desc = [
     { "packets", virtnet_rq_stats.packets.offsetof },
     { "bytes", virtnet_rq_stats.bytes.offsetof },
     { "drops", virtnet_rq_stats.drops.offsetof  },
@@ -3028,96 +3028,96 @@ struct irq_affinity;
     //const(char) **names;
     //bool *ctx;
 
-////version(none) {
-    ////total_vqs = vi.max_queue_pairs * 2 + __dbind__virtio_has_feature(vi.vdev, VIRTIO_NET_F_CTRL_VQ);
+    //total_vqs = vi.max_queue_pairs * 2 + __dbind__virtio_has_feature(vi.vdev, VIRTIO_NET_F_CTRL_VQ);
 
     ////int r = __dbind__virtio_has_feature(vi.vdev, VIRTIO_NET_F_CTRL_VQ);
     ////printk("\x05max_queue_pairs %hu has_feat %d total_vqs %d\n", vi.max_queue_pairs, r, total_vqs);
 
-    ////vqs = cast(virtqueue**)__dbind__kcalloc(total_vqs, (*vqs).sizeof, GFP_KERNEL);
-    ////if (!vqs)
-        ////goto err_vq;
-    //////grija!!!
-    ////callbacks = cast(vq_callback_t*)__dbind__kmalloc_array(total_vqs, (*callbacks).sizeof, GFP_KERNEL);
-    ////if (callbacks is null)
-        ////goto err_callback;
-    //////grija!!!
-    ////names = cast(const(char)**)__dbind__kmalloc_array(total_vqs, (*names).sizeof, GFP_KERNEL);
-    ////if (names is null)
-        ////goto err_names;
-    ////if (!vi.big_packets || vi.mergeable_rx_bufs) {
-        ////ctx = cast(bool*)__dbind__kcalloc(total_vqs, (*ctx).sizeof, GFP_KERNEL);
-        ////if (ctx is null)
-            ////goto err_ctx;
-    ////} else {
-        ////ctx = null;
-    ////}
+    //vqs = cast(virtqueue**)__dbind__kcalloc(total_vqs, (*vqs).sizeof, GFP_KERNEL);
+    //if (!vqs)
+        //goto err_vq;
+    ////grija!!!
+    //callbacks = cast(vq_callback_t*)__dbind__kmalloc_array(total_vqs, (*callbacks).sizeof, GFP_KERNEL);
+    //if (callbacks is null)
+        //goto err_callback;
+    ////grija!!!
+    //names = cast(const(char)**)__dbind__kmalloc_array(total_vqs, (*names).sizeof, GFP_KERNEL);
+    //if (names is null)
+        //goto err_names;
+    //if (!vi.big_packets || vi.mergeable_rx_bufs) {
+        //ctx = cast(bool*)__dbind__kcalloc(total_vqs, (*ctx).sizeof, GFP_KERNEL);
+        //if (ctx is null)
+            //goto err_ctx;
+    //} else {
+        //ctx = null;
+    //}
 
-    ////if (vi.has_cvq) {
-        ////callbacks[total_vqs - 1] = null;
-        ////names[total_vqs - 1] = "control";
-    ////}
-    //////__dbind__print_bug();
-    ////for (i = 0; i < vi.max_queue_pairs; i++) {
-        //////grija!!!
-        //////callbacks[rxq2vq(i)] = cast(vq_callback_t)addr_skb_recv_done();
-        //////__dbind__print(addr_skb_recv_done());
+    //if (vi.has_cvq) {
+        //callbacks[total_vqs - 1] = null;
+        //names[total_vqs - 1] = "control";
+    //}
+    ////__dbind__print_bug();
+    //for (i = 0; i < vi.max_queue_pairs; i++) {
+        ////grija!!!
+        ////callbacks[rxq2vq(i)] = cast(vq_callback_t)addr_skb_recv_done();
+        ////__dbind__print(addr_skb_recv_done());
         ////callbacks[rxq2vq(i)] = cast(vq_callback_t)(addr_skb_recv_done());
+        //callbacks[rxq2vq(i)] = &skb_recv_done;
+        //callbacks[txq2vq(i)] = &skb_xmit_done;
         ////callbacks[txq2vq(i)] = cast(vq_callback_t)(addr_skb_xmit_done());
-        ////sprintf(vi.rq[i].name.ptr, "input.%d", i);
-        ////sprintf(vi.sq[i].name.ptr, "output.%d", i);
-        //////grija 2
+        //sprintf(vi.rq[i].name.ptr, "input.%d", i);
+        //sprintf(vi.sq[i].name.ptr, "output.%d", i);
+        ////grija 2
         ////assert(vi.rq[i].name.ptr);
-        ////names[rxq2vq(i)] = vi.rq[i].name.ptr;
+        //names[rxq2vq(i)] = vi.rq[i].name.ptr;
         ////assert(vi.sq[i].name.ptr);
-        ////names[txq2vq(i)] = vi.sq[i].name.ptr;
-        ////if (ctx)
-            ////ctx[rxq2vq(i)] = true;
-    ////}
+        //names[txq2vq(i)] = vi.sq[i].name.ptr;
+        //if (ctx !is null)
+            //ctx[rxq2vq(i)] = true;
+    //}
 
-    //////__dbind__print_bug();
+    ////__dbind__print_bug();
     ////assert(vi.vdev !is null);
 
     ////printk("\x05max_queue_pairs %hu has_feat %d total_vqs %d\n", vi.max_queue_pairs, r, total_vqs);
     ////dump_stack();
     ////__dbind__print_bug();
-    //printk("SALUT");
-    ////ret = vi.vdev.config.find_vqs(vi.vdev, total_vqs, vqs, callbacks,
-                     ////names, ctx, null);
-    //ret = vi.vdev.config.find_vqs(cast(typeof(vi.vdev))0x10, 0x11, cast(typeof(vqs))0x12, 
-            //cast(typeof(callbacks))0x13,cast(typeof(names))0x14,
-            //cast(typeof(ctx))0x15,cast(irq_affinity*)0x16);
+    ////printk("SALUT");
+    //ret = vi.vdev.config.find_vqs(vi.vdev, total_vqs, vqs, callbacks,
+                     //names, ctx, null);
+    ////ret = vi.vdev.config.find_vqs(cast(typeof(vi.vdev))0x10, 0x11, cast(typeof(vqs))0x12, 
+            ////cast(typeof(callbacks))0x13,cast(typeof(names))0x14,
+            ////cast(typeof(ctx))0x15,cast(irq_affinity*)0x16);
     ////__dbind__print_bug();
-    //return ret;
-////version(none) {
-    ////if (ret)
-        ////goto err_find;
-
-    ////if (vi.has_cvq) {
-        ////vi.cvq = vqs[total_vqs - 1];
-        ////if (__dbind__virtio_has_feature(vi.vdev, VIRTIO_NET_F_CTRL_VLAN))
-            ////vi.dev.features |= __NETIF_F!("HW_VLAN_CTAG_FILTER");
-    ////}
-
-    ////for (i = 0; i < vi.max_queue_pairs; i++) {
-        ////vi.rq[i].vq = vqs[rxq2vq(i)];
-        ////vi.rq[i].min_buf_len = mergeable_min_buf_len(vi, vi.rq[i].vq);
-        ////vi.sq[i].vq = vqs[txq2vq(i)];
-    ////}
-
-
-
-////err_find:
-    ////__dbind__kfree(ctx);
-////err_ctx:
-    ////__dbind__kfree(names);
-////err_names:
-    ////__dbind__kfree(callbacks);
-////err_callback:
-    ////__dbind__kfree(vqs);
-////err_vq:
     ////return ret;
-////}
+
+    //if (ret)
+        //goto err_find;
+
+    //if (vi.has_cvq) {
+        //vi.cvq = vqs[total_vqs - 1];
+        //if (__dbind__virtio_has_feature(vi.vdev, VIRTIO_NET_F_CTRL_VLAN))
+            //vi.dev.features |= __NETIF_F!("HW_VLAN_CTAG_FILTER");
+    //}
+
+    //for (i = 0; i < vi.max_queue_pairs; i++) {
+        //vi.rq[i].vq = vqs[rxq2vq(i)];
+        //vi.rq[i].min_buf_len = mergeable_min_buf_len(vi, vi.rq[i].vq);
+        //vi.sq[i].vq = vqs[txq2vq(i)];
+    //}
+
+
+
+//err_find:
+    //__dbind__kfree(ctx);
+//err_ctx:
+    //__dbind__kfree(names);
+//err_names:
+    //__dbind__kfree(callbacks);
+//err_callback:
+    //__dbind__kfree(vqs);
+//err_vq:
+    //return ret;
 //}
 
 extern(C) void __dbind__u64_stats_init(u64_stats_sync *syncp);
