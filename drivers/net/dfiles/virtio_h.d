@@ -10,25 +10,25 @@ struct irq_affinity;
 alias vq_callback_t = extern(C) void function(virtqueue *);
 
 struct virtio_config_ops {
-    void function(virtio_device *vdev, uint offset,
+    extern(C) void function(virtio_device *vdev, uint offset,
             void *buf, uint len) get;
-    void function(virtio_device *vdev, uint offset,
+    extern(C) void function(virtio_device *vdev, uint offset,
             const void *buf, uint len) set;
-    uint function(virtio_device *vdev) generation;
-    ubyte function(virtio_device *vdev) get_status;
-    void function(virtio_device *vdev, ubyte status) set_status;
-    void function(virtio_device *vdev) reset;
-    int function(virtio_device *, uint nvqs,
+    extern(C) uint function(virtio_device *vdev) generation;
+    extern(C) ubyte function(virtio_device *vdev) get_status;
+    extern(C) void function(virtio_device *vdev, ubyte status) set_status;
+    extern(C) void function(virtio_device *vdev) reset;
+    extern(C) int function(virtio_device *, uint nvqs,
             virtqueue** vqs, vq_callback_t* callbacks,
             //const char *[] names, const(bool)* ctx,
             const char ** names, const(bool) *ctx,
             irq_affinity *desc) find_vqs;
-    void function(virtio_device *) del_vqs;
-    ulong function(virtio_device *vdev) get_features;
-    int function(virtio_device *vdev) finalize_features;
-    const char * function(virtio_device *vdev) bus_name;
-    int function(virtqueue *vq, const(cpumask) *cpu_mask) set_vq_affinity;
-    const cpumask * function(virtio_device *vdev, int index) get_vq_affinity;
+    extern(C) void function(virtio_device *) del_vqs;
+    extern(C) ulong function(virtio_device *vdev) get_features;
+    extern(C) int function(virtio_device *vdev) finalize_features;
+    extern(C) const char * function(virtio_device *vdev) bus_name;
+    extern(C) int function(virtqueue *vq, const(cpumask) *cpu_mask) set_vq_affinity;
+    extern(C) const cpumask * function(virtio_device *vdev, int index) get_vq_affinity;
 }
 
 struct virtio_device {
@@ -87,9 +87,8 @@ align(1) struct virtio_net_config {
 
 align(1) struct virtio_net_ctrl_mac {
     uint entries;
-    //ubyte[ETH_ALEN][] macs; // Ce trebuia sa fie
+    //ubyte[ETH_ALEN][0] macs; // Ce trebuia sa fie
     ubyte[0] macs;
 }
-
 
 //pragma(msg, "size structura vietii:", virtio_net_ctrl_mac.sizeof);

@@ -8,7 +8,8 @@ import device_h : device, work_struct;
 import kobject_h : kobject, delayed_work;
 import link_state_h : rtnl_link_stats64;
 import net_device_h: net_device, netdev_queue, netdev_bpf, netlink_ext_ack, bpf_netdev_command,
-       gogu, netdev_features_t, netdev_priv_flags, ethtool_ops, net_device_ops, attribute_group;
+       gogu, netdev_features_t, netdev_priv_flags, ethtool_ops, net_device_ops, attribute_group,
+       netdev_hw_addr;
 import sk_buff_h : sk_buff, skb_shared_info;
 import bpf_prog_h : bpf_prog;
 import send_queue_h : send_queue, scatterlist, virtnet_sq_stats, MAX_SKB_FRAGS, PAGE_SIZE,
@@ -27,7 +28,6 @@ import list_head_h : hlist_node;
 import cpu_state_h : cpuhp_state;
 import uapi_h : ethtool_ringparam, ethtool_drvinfo, ethtool_channels, ethtool_stats,
        ethtool_link_ksettings, ethtool_stringset, __ETHTOOL_LINK_MODE_MASK_NBITS;
-       //KERNEL_DIV_ROUND_UP__1;
 
 //pragma(msg, "Sizeof napi_struct: ", napi_struct.sizeof);
 //pragma(msg, "Sizeof virtqueue: ", virtqueue.sizeof);
@@ -94,7 +94,6 @@ import uapi_h : ethtool_ringparam, ethtool_drvinfo, ethtool_channels, ethtool_st
 //pragma(msg, "Offsetof virtnet_info.rq:", virtnet_info.rq.offsetof);
 //pragma(msg, "Offsetof virtnet_info.refill:", virtnet_info.refill.offsetof);
 //pragma(msg, "Offsetof virtnet_info.failover:", virtnet_info.failover.offsetof);
-extern(C) void msleep(uint msecs);
 
 alias gfp_t = uint;
 
@@ -256,14 +255,13 @@ extern(C) uint mergeable_ctx_to_truesize(void *mrg_ctx)
 
 extern(C) int vq2rxq(virtqueue *vq)
 {
-	return vq.index / 2;
+    return vq.index / 2;
 }
 
 extern(C) int vq2txq(virtqueue *vq)
 {
     return (vq.index - 1) / 2;
 }
-
 
 extern(C) void virtqueue_napi_schedule(napi_struct *napi, virtqueue *vq)
 {
@@ -301,12 +299,10 @@ extern(C) bool virtnet_fail_on_feature(virtio_device *vdev, uint fbit,
     return true;
 }
 
-
 extern(C) virtio_net_hdr_mrg_rxbuf *skb_vnet_hdr(sk_buff *skb)
 {
-	return cast(virtio_net_hdr_mrg_rxbuf *)skb.cb;
+    return cast(virtio_net_hdr_mrg_rxbuf *)skb.cb.ptr;
 }
-
 
 
 extern(C) void give_pages(receive_queue *rq, dstruct_page *page)
@@ -314,10 +310,13 @@ extern(C) void give_pages(receive_queue *rq, dstruct_page *page)
     dstruct_page *end;
 
     /* Find end of list, sew whole thing into vi->rq.pages. */
-    for (end = page; end.d_alias_private; end = cast(dstruct_page *)end.d_alias_private)
-    {
+    //() @trusted
+    //{
+        for (end = page; end.d_alias_private; end = cast(dstruct_page *)end.d_alias_private)
+        {
 
-    }
+        }
+    //} ();
 
     end.d_alias_private = cast(c_ulong)rq.pages;
     rq.pages = page;
@@ -498,7 +497,6 @@ extern(C) int __virtnet_xdp_xmit_one(virtnet_info *vi, send_queue *sq, xdp_frame
     return 0;
 }
 
-
 extern(C) uint __dbind__smp_processor_id();
 
 extern(C) send_queue * virtnet_xdp_sq(virtnet_info *vi)
@@ -507,6 +505,7 @@ extern(C) send_queue * virtnet_xdp_sq(virtnet_info *vi)
 
     qp = vi.curr_queue_pairs - vi.xdp_queue_pairs + __dbind__smp_processor_id();
     return &vi.sq[qp];
+    //return ( () @trusted =>  &vi.sq[qp])();
 }
 
 extern(C) void * __dbind__netdev_priv(const net_device *);
@@ -551,20 +550,25 @@ extern(C) void __dbind__read_once_size(const void *, void *, int);
     //return (rcu_dereference_check(p, 0));
 //}
 
+extern(C) uint *kmalloc(size_t size, gfp_t flags);
+
 extern(C) int virtnet_xdp_xmit(net_device *dev,
         int n,  xdp_frame **frames, uint flags)
 {
+    //virtnet_info *vi = ( () @trusted => cast(virtnet_info *)__dbind__netdev_priv(dev))();
     virtnet_info *vi = cast(virtnet_info *)__dbind__netdev_priv(dev);
     receive_queue *rq = vi.rq;
     xdp_frame *xdpf_sent;
     bpf_prog *xdp_prog;
     send_queue *sq;
+    //uint *len;
     uint len;
     int drops = 0;
     int kicks = 0;
     int ret, err;
     int i;
 
+    //len = cast(uint*)kmalloc(uint.sizeof, GFP_ATOMIC);
     sq = virtnet_xdp_sq(vi);
 
     ////if (unlikely(flags & ~XDP_XMIT_FLAGS_MASK)) 
@@ -2053,105 +2057,104 @@ extern(C) uint __dbind__cpu_to_virtio32(virtio_device *, uint);
 extern(C) void *__dbind__kzalloc(size_t, gfp_t);
 
 
+extern(C) void __dbind__netdev_for_each_uc_addr(netdev_hw_addr *ha, net_device *dev, virtio_net_ctrl_mac *mac_data);
 
-//extern(C) void virtnet_set_rx_mode(net_device *dev)
-//{
-    //virtnet_info *vi = cast(virtnet_info *)__dbind__netdev_priv(dev);
-    //scatterlist[2] sg;
-    //virtio_net_ctrl_mac *mac_data;
-    //netdev_hw_addr *ha;
-    //int uc_count;
-    //int mc_count;
-    //void *buf;
-    //int i;
+extern(C) void __dbind__netdev_for_each_mc_addr(netdev_hw_addr *ha, net_device *dev, virtio_net_ctrl_mac *mac_data);
+
+extern(C) void virtnet_set_rx_mode(net_device *dev)
+{
+    virtnet_info *vi = cast(virtnet_info *)__dbind__netdev_priv(dev);
+    scatterlist[2] sg;
+    virtio_net_ctrl_mac *mac_data;
+    netdev_hw_addr *ha;
+    int uc_count;
+    int mc_count;
+    void *buf;
+    int i;
 
     //[> We can't dynamically set ndo_set_rx_mode, so return gracefully <]
-    //if (!__dbind__virtio_has_feature(vi.vdev, VIRTIO_NET_F_CTRL_RX))
-        //return;
+    if (!__dbind__virtio_has_feature(vi.vdev, VIRTIO_NET_F_CTRL_RX))
+        return;
 
-    //vi.ctrl.promisc = ((dev.flags & __dbind__getIFF_PROMISC) != 0);
-    //vi.ctrl.allmulti = ((dev.flags & __dbind__getIFF_ALLMULTI) != 0);
+    vi.ctrl.promisc = ((dev.flags & __dbind__getIFF_PROMISC) != 0);
+    vi.ctrl.allmulti = ((dev.flags & __dbind__getIFF_ALLMULTI) != 0);
 
-    //sg_init_one(sg.ptr, &vi.ctrl.promisc, vi.ctrl.promisc.sizeof);
+    sg_init_one(&sg[0], &vi.ctrl.promisc, vi.ctrl.promisc.sizeof);
 
-    //if (!virtnet_send_command(vi, VIRTIO_NET_CTRL_RX,
-                  //VIRTIO_NET_CTRL_RX_PROMISC, sg.ptr))
+    if (!virtnet_send_command(vi, VIRTIO_NET_CTRL_RX,
+                  VIRTIO_NET_CTRL_RX_PROMISC, &sg[0]))
         //__dbind__print_bug();
-        ////dev_warn(&dev.dev, "Failed to %sable promisc mode.\n",
-             ////vi.ctrl.promisc ? "en" : "dis");
+        printk("\x05 aici1");
+        //dev_warn(&dev.dev, "Failed to %sable promisc mode.\n",
+             //vi.ctrl.promisc ? "en" : "dis");
 
-    //sg_init_one(sg.ptr, &vi.ctrl.allmulti, vi.ctrl.allmulti.sizeof);
+    sg_init_one(&sg[0], &vi.ctrl.allmulti, vi.ctrl.allmulti.sizeof);
 
-    //if (!virtnet_send_command(vi, VIRTIO_NET_CTRL_RX,
-                  //VIRTIO_NET_CTRL_RX_ALLMULTI, sg.ptr))
+    if (!virtnet_send_command(vi, VIRTIO_NET_CTRL_RX,
+                  VIRTIO_NET_CTRL_RX_ALLMULTI, &sg[0]))
         //__dbind__print_bug();
-        ////dev_warn(&dev.dev, "Failed to %sable allmulti mode.\n",
-             ////vi.ctrl.allmulti ? "en" : "dis");
+        printk("\x05 aici2");
+        //dev_warn(&dev.dev, "Failed to %sable allmulti mode.\n",
+             //vi.ctrl.allmulti ? "en" : "dis");
 
-    //uc_count = __dbind__netdev_uc_count(dev);
-    //mc_count = __dbind__netdev_mc_count(dev);
+    uc_count = __dbind__netdev_uc_count(dev);
+    mc_count = __dbind__netdev_mc_count(dev);
     //[> MAC filter - use one buffer for both lists <]
-    //buf = __dbind__kzalloc(((uc_count + mc_count) * ETH_ALEN) +
-              //(2 * mac_data.entries.sizeof), GFP_ATOMIC);
-    //mac_data = cast(virtio_net_ctrl_mac *)buf;
+    buf = __dbind__kzalloc(((uc_count + mc_count) * ETH_ALEN) +
+              (2 * mac_data.entries.sizeof), GFP_ATOMIC);
+    mac_data = cast(virtio_net_ctrl_mac *)buf;
 
-    //if (buf is null)
-        //return;
+    if (buf is null)
+        return;
 
-    //sg_init_table(sg.ptr, 2);
+    sg_init_table(&sg[0], 2);
 
     //[> Store the unicast list and count in the front of the buffer <]
-    //mac_data.entries = __dbind__cpu_to_virtio32(vi.vdev, uc_count);
-    //i = 0;
-    ////netdev_for_each_uc_addr(ha, dev)
-	////netdev_hw_addr_list_for_each(ha, &(dev)->uc)
-	////list_for_each_entry(ha, &(l)->list, list)
-    ////pos,head,member ---- head = &(dev->uc->list), member = list
-    //for (ha = cast(netdev_hw_addr*)container_of!(typeof(*ha).stringof, "list")(ha);
+    mac_data.entries = __dbind__cpu_to_virtio32(vi.vdev, uc_count);
+    i = 0;
+
+    //for (ha = cast(netdev_hw_addr*)container_of!(typeof(*ha).stringof, "list")((&((&(dev.uc)).list)).next);
+            //&ha.list != (&((&(dev.uc)).list));
+    //for (ha = cast(netdev_hw_addr*)container_of!(typeof(*ha).stringof, "list")(dev.uc.list.next);
             //&ha.list != &(dev.uc.list);
         //ha = cast(netdev_hw_addr*)container_of!(typeof(*ha).stringof, "list")(ha.list.next)) {
-            ////ulong ceva = mac_data.macs.length;
-            ////ulong ceva2 = mac_data.macs[0].length;
-            ////__dbind__print(&ceva);
-            ////__dbind__print(&ceva2);
-            //__dbind__print(&i);
-            //auto m_ptr = mac_data.macs.ptr;
-            ////memcpy(&(().ptr[0]), ha.addr.ptr, ETH_ALEN);
+            //ubyte *m_ptr = mac_data.macs.ptr;
             //memcpy(m_ptr + i * ETH_ALEN, ha.addr.ptr, ETH_ALEN);
             //i++;
-            ////memcpy(&((mac_data.macs.ptr[i++]).ptr[0]), ha.addr.ptr, ETH_ALEN);
     //}
+    __dbind__netdev_for_each_uc_addr(ha, dev, mac_data);
 
-    //__dbind__sg_set_buf(&sg[0], mac_data,
-          //cast(uint)(mac_data.entries.sizeof + (uc_count * ETH_ALEN)));
+    __dbind__sg_set_buf(&sg[0], mac_data,
+          cast(uint)(mac_data.entries.sizeof + (uc_count * ETH_ALEN)));
 
     //[> multicast list and count fill the end <]
-    ////mac_data = cast(virtio_net_ctrl_mac*)(&mac_data.macs[uc_count][0]);
-    //auto m_ptr = mac_data.macs.ptr;
-    //mac_data = cast(virtio_net_ctrl_mac*)(m_ptr + uc_count * ETH_ALEN);
+    auto m_ptr = mac_data.macs.ptr;
+    mac_data = cast(virtio_net_ctrl_mac*)(m_ptr + uc_count * ETH_ALEN);
 
-    //mac_data.entries = __dbind__cpu_to_virtio32(vi.vdev, mc_count);
-    //i = 0;
+    mac_data.entries = __dbind__cpu_to_virtio32(vi.vdev, mc_count);
 
-    //__dbind__print_bug();
-
-    //for (ha = cast(netdev_hw_addr*)container_of!(typeof(*ha).stringof, "list")(ha);
-            //&ha.list != (&(dev.mc.list));
+    i = 0;
+    __dbind__netdev_for_each_mc_addr(ha, dev, mac_data);
+    //for (ha = cast(netdev_hw_addr*)container_of!(typeof(*ha).stringof, "list")((&((&(dev.mc)).list)).next);
+            //&ha.list != (&((&(dev.mc)).list));
+    //for (ha = cast(netdev_hw_addr*)container_of!(typeof(*ha).stringof, "list")(dev.mc.list.next);
+            //&ha.list != &(dev.mc.list);
         //ha = cast(netdev_hw_addr*)container_of!(typeof(*ha).stringof, "list")(ha.list.next))
-            ////memcpy(&mac_data.macs[i++][0], ha.addr.ptr, ETH_ALEN);
+    //{
             //memcpy(m_ptr + i * ETH_ALEN, ha.addr.ptr, ETH_ALEN);
             //i++;
+    //}
 
-    //__dbind__sg_set_buf(&sg[1], mac_data,
-          //cast(uint)(mac_data.entries.sizeof + (mc_count * ETH_ALEN)));
+    __dbind__sg_set_buf(&sg[1], mac_data,
+          cast(uint)(mac_data.entries.sizeof + (mc_count * ETH_ALEN)));
 
-    //if (!virtnet_send_command(vi, VIRTIO_NET_CTRL_MAC,
-                  //VIRTIO_NET_CTRL_MAC_TABLE_SET, sg.ptr))
-        //__dbind__print_bug();
-        ////dev_warn(&dev.dev, "Failed to set MAC filter table.\n");
+    if (!virtnet_send_command(vi, VIRTIO_NET_CTRL_MAC,
+                  VIRTIO_NET_CTRL_MAC_TABLE_SET, &sg[0]))
+        printk("\x05 aici3");
+        //dev_warn(&dev.dev, "Failed to set MAC filter table.\n");
 
-    //__dbind__kfree(buf);
-//}
+    __dbind__kfree(buf);
+}
 
 
 enum VIRTIO_NET_CTRL_VLAN = 2;
@@ -2603,7 +2606,6 @@ extern(C) void virtnet_freeze_down( virtio_device *vdev)
 
 extern(C) void __dbind__virtio_device_ready(virtio_device *dev);
 extern(C) void netif_device_attach(net_device *dev);
-extern(C) int init_vqs(virtnet_info *vi);
 
 extern(C) int virtnet_restore_up( virtio_device *vdev)
 {
@@ -3018,107 +3020,91 @@ extern(C) void *addr_skb_recv_done();
 extern(C) void *addr_skb_xmit_done();
 struct irq_affinity;
 
-//extern(C) int virtnet_find_vqs(virtnet_info *vi)
-//{
-    //vq_callback_t *callbacks;
-    //virtqueue **vqs;
-    //int ret = -ENOMEM;
-    //int i, total_vqs;
-    ////grija!!!
-    //const(char) **names;
-    //bool *ctx;
+extern(C) int virtnet_find_vqs(virtnet_info *vi)
+{
+    vq_callback_t *callbacks;
+    virtqueue **vqs;
+    int ret = -ENOMEM;
+    int i, total_vqs;
+    const(char) **names;
+    bool *ctx;
 
-    //total_vqs = vi.max_queue_pairs * 2 + __dbind__virtio_has_feature(vi.vdev, VIRTIO_NET_F_CTRL_VQ);
+     /*[>We expect 1 RX virtqueue followed by 1 TX virtqueue, followed by<]*/
+     /*[>possible N-1 RX/TX queue pairs used in multiqueue mode, followed by<]*/
+     /*[>possible control vq.<]*/
+    total_vqs = vi.max_queue_pairs * 2 +
+            __dbind__virtio_has_feature(vi.vdev, VIRTIO_NET_F_CTRL_VQ);
 
-    ////int r = __dbind__virtio_has_feature(vi.vdev, VIRTIO_NET_F_CTRL_VQ);
-    ////printk("\x05max_queue_pairs %hu has_feat %d total_vqs %d\n", vi.max_queue_pairs, r, total_vqs);
+    /*[>[> Allocate space for find_vqs parameters <]<]*/
+    vqs = cast(virtqueue**)__dbind__kcalloc(total_vqs, (*vqs).sizeof, GFP_KERNEL);
+    if (!vqs)
+        goto err_vq;
+    //grija!!!
+    callbacks = cast(vq_callback_t*)__dbind__kmalloc_array(total_vqs, (*callbacks).sizeof, GFP_KERNEL);
+    if (!callbacks)
+        goto err_callback;
+    //grija!!!
+    names = cast(const(char)**)__dbind__kmalloc_array(total_vqs, (*names).sizeof, GFP_KERNEL);
+    if (!names)
+        goto err_names;
+    if (!vi.big_packets || vi.mergeable_rx_bufs) {
+        ctx = cast(bool*)__dbind__kcalloc(total_vqs, (*ctx).sizeof, GFP_KERNEL);
+        if (!ctx)
+            goto err_ctx;
+    } else {
+        ctx = null;
+    }
 
-    //vqs = cast(virtqueue**)__dbind__kcalloc(total_vqs, (*vqs).sizeof, GFP_KERNEL);
-    //if (!vqs)
-        //goto err_vq;
-    ////grija!!!
-    //callbacks = cast(vq_callback_t*)__dbind__kmalloc_array(total_vqs, (*callbacks).sizeof, GFP_KERNEL);
-    //if (callbacks is null)
-        //goto err_callback;
-    ////grija!!!
-    //names = cast(const(char)**)__dbind__kmalloc_array(total_vqs, (*names).sizeof, GFP_KERNEL);
-    //if (names is null)
-        //goto err_names;
-    //if (!vi.big_packets || vi.mergeable_rx_bufs) {
-        //ctx = cast(bool*)__dbind__kcalloc(total_vqs, (*ctx).sizeof, GFP_KERNEL);
-        //if (ctx is null)
-            //goto err_ctx;
-    //} else {
-        //ctx = null;
-    //}
+    /*[>[> Parameters for control virtqueue, if any <]<]*/
+    if (vi.has_cvq) {
+        callbacks[total_vqs - 1] = null;
+        names[total_vqs - 1] = "control";
+    }
 
-    //if (vi.has_cvq) {
-        //callbacks[total_vqs - 1] = null;
-        //names[total_vqs - 1] = "control";
-    //}
-    ////__dbind__print_bug();
-    //for (i = 0; i < vi.max_queue_pairs; i++) {
-        ////grija!!!
-        ////callbacks[rxq2vq(i)] = cast(vq_callback_t)addr_skb_recv_done();
-        ////__dbind__print(addr_skb_recv_done());
-        ////callbacks[rxq2vq(i)] = cast(vq_callback_t)(addr_skb_recv_done());
-        //callbacks[rxq2vq(i)] = &skb_recv_done;
-        //callbacks[txq2vq(i)] = &skb_xmit_done;
-        ////callbacks[txq2vq(i)] = cast(vq_callback_t)(addr_skb_xmit_done());
-        //sprintf(vi.rq[i].name.ptr, "input.%d", i);
-        //sprintf(vi.sq[i].name.ptr, "output.%d", i);
-        ////grija 2
-        ////assert(vi.rq[i].name.ptr);
-        //names[rxq2vq(i)] = vi.rq[i].name.ptr;
-        ////assert(vi.sq[i].name.ptr);
-        //names[txq2vq(i)] = vi.sq[i].name.ptr;
-        //if (ctx !is null)
-            //ctx[rxq2vq(i)] = true;
-    //}
+    /*[>[> Allocate/initialize parameters for send/receive virtqueues <]<]*/
+    for (i = 0; i < vi.max_queue_pairs; i++) {
+        callbacks[rxq2vq(i)] = cast(vq_callback_t)addr_skb_recv_done;
+        callbacks[txq2vq(i)] = cast(vq_callback_t)addr_skb_xmit_done;
+        sprintf(vi.rq[i].name.ptr, "input.%d", i);
+        sprintf(vi.sq[i].name.ptr, "output.%d", i);
+        names[rxq2vq(i)] = vi.rq[i].name.ptr;
+        names[txq2vq(i)] = vi.sq[i].name.ptr;
+        if (ctx)
+            ctx[rxq2vq(i)] = true;
+    }
 
-    ////__dbind__print_bug();
-    ////assert(vi.vdev !is null);
+    ret = vi.vdev.config.find_vqs(vi.vdev, total_vqs, vqs, callbacks,
+                     names, ctx, null);
+    if (ret)
+        goto err_find;
 
-    ////printk("\x05max_queue_pairs %hu has_feat %d total_vqs %d\n", vi.max_queue_pairs, r, total_vqs);
-    ////dump_stack();
-    ////__dbind__print_bug();
-    ////printk("SALUT");
-    //ret = vi.vdev.config.find_vqs(vi.vdev, total_vqs, vqs, callbacks,
-                     //names, ctx, null);
-    ////ret = vi.vdev.config.find_vqs(cast(typeof(vi.vdev))0x10, 0x11, cast(typeof(vqs))0x12, 
-            ////cast(typeof(callbacks))0x13,cast(typeof(names))0x14,
-            ////cast(typeof(ctx))0x15,cast(irq_affinity*)0x16);
-    ////__dbind__print_bug();
-    ////return ret;
+    if (vi.has_cvq) {
+        vi.cvq = vqs[total_vqs - 1];
+        if (__dbind__virtio_has_feature(vi.vdev, VIRTIO_NET_F_CTRL_VLAN))
+            //vi.dev.features |= NETIF_F_HW_VLAN_CTAG_FILTER;
+            vi.dev.features |= __NETIF_F!("HW_VLAN_CTAG_FILTER");
+    }
 
-    //if (ret)
-        //goto err_find;
+    for (i = 0; i < vi.max_queue_pairs; i++) {
+        vi.rq[i].vq = vqs[rxq2vq(i)];
+        vi.rq[i].min_buf_len = mergeable_min_buf_len(vi, vi.rq[i].vq);
+        vi.sq[i].vq = vqs[txq2vq(i)];
+    }
 
-    //if (vi.has_cvq) {
-        //vi.cvq = vqs[total_vqs - 1];
-        //if (__dbind__virtio_has_feature(vi.vdev, VIRTIO_NET_F_CTRL_VLAN))
-            //vi.dev.features |= __NETIF_F!("HW_VLAN_CTAG_FILTER");
-    //}
-
-    //for (i = 0; i < vi.max_queue_pairs; i++) {
-        //vi.rq[i].vq = vqs[rxq2vq(i)];
-        //vi.rq[i].min_buf_len = mergeable_min_buf_len(vi, vi.rq[i].vq);
-        //vi.sq[i].vq = vqs[txq2vq(i)];
-    //}
+    /*[>[> run here: ret == 0. <]<]*/
 
 
-
-//err_find:
-    //__dbind__kfree(ctx);
-//err_ctx:
-    //__dbind__kfree(names);
-//err_names:
-    //__dbind__kfree(callbacks);
-//err_callback:
-    //__dbind__kfree(vqs);
-//err_vq:
-    //return ret;
-//}
+err_find:
+    __dbind__kfree(ctx);
+err_ctx:
+    __dbind__kfree(names);
+err_names:
+    __dbind__kfree(callbacks);
+err_callback:
+    __dbind__kfree(vqs);
+err_vq:
+    return ret;
+}
 
 extern(C) void __dbind__u64_stats_init(u64_stats_sync *syncp);
 extern(C) void __dbind__netif_napi_add(net_device *dev, napi_struct *napi,
@@ -3168,30 +3154,30 @@ err_ctrl:
     return -ENOMEM;
 }
 
-//int init_vqs( virtnet_info *vi)
-//{
-    //int ret;
+extern(C) int init_vqs( virtnet_info *vi)
+{
+    int ret;
 
     //[> Allocate send & receive queues <]
-    //ret = virtnet_alloc_queues(vi);
-    //if (ret)
-        //goto err;
+    ret = virtnet_alloc_queues(vi);
+    if (ret)
+        goto err;
 
-    //ret = virtnet_find_vqs(vi);
-    //if (ret)
-        //goto err_free;
+    ret = virtnet_find_vqs(vi);
+    if (ret)
+        goto err_free;
 
-    //__dbind__get_online_cpus();
-    //virtnet_set_affinity(vi);
-    //__dbind__put_online_cpus();
+    __dbind__get_online_cpus();
+    virtnet_set_affinity(vi);
+    __dbind__put_online_cpus();
 
-    //return 0;
+    return 0;
 
-//err_free:
-    //virtnet_free_queues(vi);
-//err:
-    //return ret;
-//}
+err_free:
+    virtnet_free_queues(vi);
+err:
+    return ret;
+}
 
 
 //extern(C) uint __dbind__get_netdev_rx_queue_index(netdev_rx_queue *);
@@ -3285,7 +3271,7 @@ extern(C) int virtnet_validate(virtio_device *vdev)
     return 0;
 }
 
-extern(C) int __dbind__virtio_cread_feature_2(virtio_device *, int, uint *);
+extern(C) int __dbind__virtio_cread_feature_2(virtio_device *, int, ushort *);
 extern(C) void __dbind__virtio_cread_bytes(virtio_device *, uint offset,
         void *buf, size_t len);
 enum VIRTIO_NET_CTRL_MQ_VQ_PAIRS_MIN = 1;
@@ -3321,7 +3307,7 @@ extern(C) int virtnet_probe(virtio_device *vdev)
     int i, err = -ENOMEM;
     net_device *dev;
     virtnet_info *vi;
-    uint max_queue_pairs;
+    ushort max_queue_pairs;
     int mtu;
 
     //[> Find if host supports multiqueue virtio_net device <]

@@ -12,12 +12,26 @@ run: copy
 	sudo iptables -t nat -A POSTROUTING -o enp2s0 -j MASQUERADE
 	sudo sysctl -w net.ipv4.ip_forward=1
 	$(MAKE) boot ARCH=$(ARCH)
+
+
+run_1: copy_1
+	sudo iptables -t nat -A POSTROUTING -o enp2s0 -j MASQUERADE
+	sudo sysctl -w net.ipv4.ip_forward=1
+	$(MAKE) boot_1 ARCH=$(ARCH)
 	
+run_2: copy_2
+	sudo iptables -t nat -A POSTROUTING -o enp2s0 -j MASQUERADE
+	sudo sysctl -w net.ipv4.ip_forward=1
+	$(MAKE) boot_2 ARCH=$(ARCH)
+
+
 build: $(KCONFIG) skels/Kbuild
 	$(MAKE) -C $(D_SRC)
 	$(MAKE) -C $(KDIR)  ARCH=$(ARCH) modules
 
 TEMPDIR := $(shell mktemp -u)
+TEMPDIR_1 := $(shell mktemp -u)
+TEMPDIR_2 := $(shell mktemp -u)
 
 skels/Kbuild:
 	mkdir -p skels
@@ -37,6 +51,30 @@ copy: build $(YOCTO_IMAGE)
 	find skels -type d \( -name checker \) | xargs sudo cp -r --parents -t $(TEMPDIR)/home/root || true
 	sudo umount $(TEMPDIR)
 	rmdir $(TEMPDIR)
+
+copy_1: build $(YOCTO_IMAGE)
+	if  [ -e qemu1.mon ]; then exit 1; fi
+	cp ../../drivers/net/virtio_net_tmp.ko skels
+	cp ../../drivers/net/dfiles/test.sh skels
+	mkdir $(TEMPDIR_1)
+	sudo mount -t ext4 -o loop $(YOCTO_IMAGE) $(TEMPDIR_1)
+	find skels -type f \( -name *.ko -or -executable \)
+	find skels -type f \( -name *.ko -or -executable \) | xargs sudo cp --parents -t $(TEMPDIR_1)/home/root || true
+	find skels -type d \( -name checker \) | xargs sudo cp -r --parents -t $(TEMPDIR_1)/home/root || true
+	sudo umount $(TEMPDIR_1)
+	rmdir $(TEMPDIR_1)
+
+copy_2: build $(YOCTO_IMAGE)
+	if  [ -e qemu2.mon ]; then exit 1; fi
+	cp ../../drivers/net/virtio_net_tmp.ko skels
+	cp ../../drivers/net/dfiles/test.sh skels
+	mkdir $(TEMPDIR_2)
+	sudo mount -t ext4 -o loop $(YOCTO_IMAGE) $(TEMPDIR_2)
+	find skels -type f \( -name *.ko -or -executable \)
+	find skels -type f \( -name *.ko -or -executable \) | xargs sudo cp --parents -t $(TEMPDIR_2)/home/root || true
+	find skels -type d \( -name checker \) | xargs sudo cp -r --parents -t $(TEMPDIR_2)/home/root || true
+	sudo umount $(TEMPDIR_2)
+	rmdir $(TEMPDIR_2)
 
 docs:
 	pip install --user -r requirements.txt
