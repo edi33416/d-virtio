@@ -478,7 +478,7 @@ inline void __dbind__napi_enable(struct napi_struct *n)
 
 void __assert (const char *__assertion, const char *__file, int __line)
 {
-    pr_info("%s %s:%d\n", "Out of bounds, lele", __file, __line);
+    panic("Assert failed in file %s at line %d\n. The system will halt.", __file, __line);
 }
 
 inline void __dbind__sg_set_buf(struct scatterlist *sg, const void *buf,

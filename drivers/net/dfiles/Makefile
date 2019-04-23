@@ -1,6 +1,7 @@
 CC=ldc2
-#CFLAGS=-betterC -c -relocation-model=static
-CFLAGS=-betterC -c -g -release
+#CFLAGS=-betterC -c -release -boundscheck=on -O1 -enable-inlining -disable-red-zone
+CFLAGS=-betterC -c -release -boundscheck=on -enable-inlining -aarch64-enable-cond-br-tune -aarch64-enable-condopt
+#CFLAGS=-betterC -c
 ext=.o_shipped
 CC_PATH=~/dlang/ldc-1.14.0/activate
 SHELL := /bin/bash

@@ -10,6 +10,14 @@ import device_h : work_struct;
 
 struct dstruct_failover;
 
+struct dlang_virtnet_info {
+    send_queue[] sq;
+    receive_queue[] rq;
+    virtnet_info* vi;
+    ubyte[0] tmp;
+}
+
+
 struct virtnet_info {
     virtio_device *vdev;
     virtqueue *cvq;
