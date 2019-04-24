@@ -61,10 +61,6 @@ inline void __dbind__sh__print(void *p) {
     pr_info("my val: %hd, %hu\n", *(short*)p, *(unsigned short *)p);
 }
 
-inline unsigned int __dbind__ALIGN(unsigned int len, unsigned int L1) {
-    return ALIGN(len, L1);
-}
-
 inline unsigned int __dbind__clamp_t(unsigned long len_read, uint buf_len, size_t diff) {
     return clamp_t(unsigned int, len_read, buf_len, diff);
 }
@@ -73,6 +69,7 @@ inline struct page * __dbind__alloc_page(gfp_t gfp_mask, unsigned int order) {
     return alloc_pages(gfp_mask, 0);
 }
 
+//to translate
 inline void * __dbind__page_address(const struct page *page) {
     return page_address(page);
 }
@@ -84,11 +81,6 @@ inline unsigned int __dbind__smp_processor_id(void) {
 inline struct skb_shared_info * __dbind__skb_shinfo(const struct sk_buff *skb) {
     return (struct skb_shared_info *) skb_end_pointer(skb);
 }
-
-inline int __dbind__SKB_DATA_ALIGN(size_t x) {
-    return SKB_DATA_ALIGN(x);
-}
-
 
 inline int __dbind__raw_smp_processor_id(void) {
     return raw_smp_processor_id();
@@ -438,10 +430,6 @@ inline int __dbind__virtio_net_hdr_from_skb(const struct sk_buff *skb,
 
 inline void __dbind__netif_tx_lock(struct netdev_queue *nq, int smth) {
     return __netif_tx_lock(nq, smth);
-}
-
-inline void *__dbind__netdev_priv(const struct net_device *dev) {
-    return netdev_priv(dev);
 }
 
 inline void __dbind__netif_tx_unlock(struct netdev_queue *txq) {

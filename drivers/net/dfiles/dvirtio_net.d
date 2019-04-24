@@ -19,7 +19,7 @@ import receive_queue_h : receive_queue, virtnet_rq_stats, xdp_frame, xdp_buff, x
        ewma_pkt_len, page_frag, xdp_rxq_info;
 import control_buf_h : control_buf;
 import virtnet_info_h : virtnet_info, dstruct_failover, dlang_virtnet_info;
-import cache_h : L1_CACHE_BYTES, NR_CPUS;
+import cache_h : L1_CACHE_BYTES, NR_CPUS, SMP_CACHE_BYTES;
 import std.algorithm.comparison : max, min;
 import core.stdc.string : memcpy, memset;
 import gfp_h : GFP_ATOMIC, GFP_KERNEL;
@@ -159,6 +159,28 @@ struct virtnet_stat_desc {
     char[ETH_GSTRING_LEN] desc;
     size_t offset;
 }
+
+
+pragma(inline, true) auto __ALIGN_KERNEL_MASK(T, E)(T x, E mask) {
+    return ((x) + (mask)) & ~(mask);
+}
+
+pragma(inline, true) auto __ALIGN_KERNEL(T, E)(T x, E a) {
+    return __ALIGN_KERNEL_MASK(x, cast(T)(a) - 1);
+}
+
+pragma(inline, true) auto ALIGN(T, E)(T x, E a) {
+    return __ALIGN_KERNEL(x, a);
+}
+
+enum NETDEV_ALIGN = 32;
+
+pragma(inline, true) T netdev_priv(T)(const net_device *dev)
+{
+    return cast(T)(cast(char *)dev + ALIGN(net_device.sizeof, NETDEV_ALIGN));
+}
+
+alias netdev_priv_vinfo = netdev_priv!(virtnet_info*);
 
 //pragma(msg, "stat_desc sizeof:", virtnet_stat_desc.sizeof);
 
@@ -318,10 +340,10 @@ extern(C) bool virtnet_fail_on_feature(virtio_device *vdev, uint fbit,
 @safe
 extern(C) virtio_net_hdr_mrg_rxbuf *skb_vnet_hdr(sk_buff *skb)
 {
-    pragma(inline, true) @trusted virtio_net_hdr_mrg_rxbuf* helper(sk_buff *skb) {
+    pragma(inline, true) @trusted virtio_net_hdr_mrg_rxbuf* helper() {
         return cast(virtio_net_hdr_mrg_rxbuf*)skb.cb.ptr;
     }
-    return helper(skb);
+    return helper();
 }
 
 
@@ -331,7 +353,7 @@ extern(C) void give_pages(receive_queue *rq, dstruct_page *page)
     dstruct_page *end;
 
     /* Find end of list, sew whole thing into vi->rq.pages. */
-    pragma(inline, true) @trusted void helper(dstruct_page *page) {
+    pragma(inline, true) @trusted void helper() {
         for (end = page; end.d_alias_private; end = cast(dstruct_page *) end.d_alias_private)
         {
 
@@ -350,10 +372,10 @@ extern(C) dstruct_page *get_a_page(receive_queue *rq, gfp_t gfp_mask)
     dstruct_page *p = rq.pages;
 
     if (p !is null) {
-        pragma(inline, true) @trusted dstruct_page* helper(dstruct_page* p) {
+        pragma(inline, true) @trusted dstruct_page* helper() {
               return cast(dstruct_page *) p.d_alias_private;
         }
-        rq.pages = helper(p);
+        rq.pages = helper();
         /* clear private here, it is used to chain pages <] */
         p.d_alias_private = 0;
     } else
@@ -370,11 +392,7 @@ extern(C) void skb_xmit_done(virtqueue *vq)
     virtnet_info *vi;
     napi_struct *napi;
 
-
-    pragma(inline, true) @trusted virtnet_info* helper_cast() {
-        return cast(virtnet_info*)vq.vdev.priv;
-    }
-    vi = helper_cast();
+    vi = vq.vdev.priv;
 
     pragma(inline, true) @trusted napi_struct* helper() {
         dlang_virtnet_info *dvi = container_of!("dlang_virtnet_info", "tmp")(vi.sq);
@@ -543,19 +561,17 @@ extern(C) send_queue * virtnet_xdp_sq(virtnet_info *vi)
 {
     uint qp;
     qp = vi.curr_queue_pairs - vi.xdp_queue_pairs + __dbind__smp_processor_id();
-    //return &vi.sq[qp];
 
-    pragma(inline, true) @trusted send_queue* helper(virtnet_info *vi) {
+    pragma(inline, true) @trusted send_queue* helper() {
         dlang_virtnet_info *dvi = container_of!("dlang_virtnet_info", "tmp")(vi.sq);
         assert(dvi.vi == vi);
         return &vi.sq[qp];
     }
 
-    return helper(vi);
+    return helper();
 }
 
 @trusted {
-    extern(C) void * __dbind__netdev_priv(const net_device *);
     extern(C) void xdp_return_frame(xdp_frame *);
     extern(C) void *virtqueue_get_buf(virtqueue *, uint *);
     extern(C) void xdp_return_frame_rx_napi(xdp_frame *);
@@ -571,43 +587,13 @@ enum XDP_XMIT_FLAGS_MASK = XDP_XMIT_FLUSH;
 
 extern(C) int rcu_read_lock_held();
 extern(C) void __dbind__read_once_size(const void *, void *, int);
-
-//T __d__READ_ONCE(T)(T x, int check) {
-    //union __u {
-        //T __val;
-        //char[1] __c;
-    //}
-    //__u u;
-    //if (check)
-        //__dbind__read_once_size(&x, u.__c.ptr, x.sizeof);
-    //return u.__val;
-//}
-
-//T __rcu_dereference_check(T)(T p, int condition) {
-    //T p1 = __d__READ_ONCE(p, 1);
-    //return p1;
-//}
-
-//T rcu_dereference_check(T)(T p, int condition) {
-    //return __rcu_dereference_check(p, condition || rcu_read_lock_held());
-//}
-
-//T rcu_dereference(T)(T p)
-//if (is(T == U*, U))
-//{
-    //return (rcu_dereference_check(p, 0));
-//}
-
 extern(C) uint *kmalloc(size_t size, gfp_t flags);
 
 //@safe
 extern(C) int virtnet_xdp_xmit(net_device *dev,
         int n,  xdp_frame **frames, uint flags)
 {
-    pragma(inline, true) @trusted virtnet_info* helper(net_device *dev) {
-        return cast(virtnet_info *)__dbind__netdev_priv(dev);
-    }
-    virtnet_info *vi = helper(dev);
+    virtnet_info *vi = netdev_priv_vinfo(dev);
     receive_queue *rq = vi.rq;
     xdp_frame *xdpf_sent;
     bpf_prog *xdp_prog;
@@ -619,10 +605,9 @@ extern(C) int virtnet_xdp_xmit(net_device *dev,
     int ret, err;
     int i;
 
-    //len = cast(uint*)kmalloc(uint.sizeof, GFP_ATOMIC);
     sq = virtnet_xdp_sq(vi);
 
-    ////if (unlikely(flags & ~XDP_XMIT_FLAGS_MASK)) 
+    ////if (unlikely(flags & ~XDP_XMIT_FLAGS_MASK))
     if (flags & ~XDP_XMIT_FLAGS_MASK) {
         ret = -EINVAL;
         drops = n;
@@ -675,7 +660,6 @@ extern(C) uint virtnet_get_headroom(virtnet_info *vi)
     return vi.xdp_queue_pairs ? VIRTIO_XDP_HEADROOM : 0;
 }
 
-extern(C) int __dbind__SKB_DATA_ALIGN(size_t);
 extern(C) dstruct_page * __dbind__virt_to_head_page(const void *);
 extern(C) void __free_pages(dstruct_page *, uint order);
 
@@ -695,7 +679,7 @@ extern(C) dstruct_page *xdp_linearize_page(receive_queue *rq,
     page_off += *len;
 
     while (--*num_buf) {
-        int tailroom = __dbind__SKB_DATA_ALIGN(skb_shared_info.sizeof);
+        int tailroom = SKB_DATA_ALIGN(skb_shared_info.sizeof);
         uint buflen;
         void *buf;
         int off;
@@ -755,8 +739,8 @@ extern(C)  sk_buff *receive_small(net_device *dev,
     uint xdp_headroom = cast(uint)(cast(c_ulong)ctx);
     uint header_offset = VIRTNET_RX_PAD + xdp_headroom;
     uint headroom = vi.hdr_len + header_offset;
-    uint buflen = __dbind__SKB_DATA_ALIGN(GOOD_PACKET_LEN + headroom) +
-                  __dbind__SKB_DATA_ALIGN(skb_shared_info.sizeof);
+    uint buflen = SKB_DATA_ALIGN(GOOD_PACKET_LEN + headroom) +
+                  SKB_DATA_ALIGN(skb_shared_info.sizeof);
     dstruct_page *page = __dbind__virt_to_head_page(buf);
     uint delta = 0;
     dstruct_page *xdp_page;
@@ -788,8 +772,8 @@ extern(C)  sk_buff *receive_small(net_device *dev,
             xdp_headroom = virtnet_get_headroom(vi);
             header_offset = VIRTNET_RX_PAD + xdp_headroom;
             headroom = vi.hdr_len + header_offset;
-            buflen = __dbind__SKB_DATA_ALIGN(GOOD_PACKET_LEN + headroom) +
-                 __dbind__SKB_DATA_ALIGN(skb_shared_info.sizeof);
+            buflen = SKB_DATA_ALIGN(GOOD_PACKET_LEN + headroom) +
+                 SKB_DATA_ALIGN(skb_shared_info.sizeof);
             xdp_page = xdp_linearize_page(rq, &num_buf, page,
                               offset, header_offset,
                               &tlen);
@@ -1248,6 +1232,9 @@ frame_err:
 }
 
 
+uint SKB_DATA_ALIGN(T)(T x) {
+    return cast(uint)ALIGN(x, SMP_CACHE_BYTES);
+}
 
 extern(C) void __dbind__get_page(dstruct_page *);
 extern(C) bool skb_page_frag_refill(uint sz, page_frag *, gfp_t);
@@ -1266,8 +1253,8 @@ extern(C) int add_recvbuf_small(virtnet_info *vi,receive_queue *rq,
     int len = vi.hdr_len + VIRTNET_RX_PAD + GOOD_PACKET_LEN + xdp_headroom;
     int err;
 
-    len = __dbind__SKB_DATA_ALIGN(len) +
-          __dbind__SKB_DATA_ALIGN(skb_shared_info.sizeof);
+    len = SKB_DATA_ALIGN(len) +
+          SKB_DATA_ALIGN(skb_shared_info.sizeof);
     //if (unlikely(!skb_page_frag_refill(len, alloc_frag, gfp)))
     if (!skb_page_frag_refill(len, alloc_frag, gfp))
         return -ENOMEM;
@@ -1336,7 +1323,6 @@ extern(C) int add_recvbuf_big(virtnet_info *vi, receive_queue *rq,
 
 
 extern(C) uint __dbind__clamp_t(c_ulong, uint, size_t);
-extern(C) uint __dbind__ALIGN(uint len, uint L1);
 
 extern(C) uint get_mergeable_buf_len(receive_queue *rq,
                       ewma_pkt_len *avg_pkt_len,
@@ -1351,7 +1337,7 @@ extern(C) uint get_mergeable_buf_len(receive_queue *rq,
     len = cast(uint)(hdr_len + __dbind__clamp_t(__dbind__ewma_pkt_len_read(avg_pkt_len),
                 rq.min_buf_len, PAGE_SIZE - hdr_len));
 
-    return __dbind__ALIGN(len, L1_CACHE_BYTES);
+    return cast(uint)ALIGN(len, L1_CACHE_BYTES);
 }
 
 
@@ -1362,7 +1348,7 @@ extern(C) int add_recvbuf_mergeable(virtnet_info *vi,
     page_frag *alloc_frag = &rq.alloc_frag;
     uint headroom = virtnet_get_headroom(vi);
     uint tailroom = headroom ? (skb_shared_info.sizeof) : 0;
-    uint room = __dbind__SKB_DATA_ALIGN(headroom + tailroom);
+    uint room = SKB_DATA_ALIGN(headroom + tailroom);
     char *buf;
     void *ctx;
     int err;
@@ -1431,7 +1417,7 @@ extern(C) bool try_fill_recv(virtnet_info *vi, receive_queue *rq, gfp_t gfp)
 
 extern(C) void skb_recv_done(virtqueue *rvq)
 {
-    virtnet_info *vi = cast(virtnet_info *)rvq.vdev.priv;
+    virtnet_info *vi = rvq.vdev.priv;
     receive_queue *rq;
 
     pragma(inline, true) @trusted receive_queue* helper() {
@@ -1484,7 +1470,7 @@ extern(C) bool __dbind__schedule_delayed_work(delayed_work *, c_ulong delay);
 extern(C) void refill_work(work_struct *work)
 {
     //era refill.work, dar work are offset 0 in refill
-    virtnet_info *vi = cast(virtnet_info *)container_of!("virtnet_info", "refill")(work);
+    virtnet_info *vi = container_of!("virtnet_info", "refill")(work);
     bool still_empty;
     int i;
 
@@ -1513,7 +1499,7 @@ extern(C) void dump_stack();
 extern(C) int virtnet_receive(receive_queue *rq, int budget,
                uint *xdp_xmit)
 {
-    virtnet_info *vi = cast(virtnet_info*)rq.vq.vdev.priv;
+    virtnet_info *vi = rq.vq.vdev.priv;
     virtnet_rq_stats stats;
     uint len;
     void *buf;
@@ -1589,16 +1575,16 @@ extern(C) void netif_tx_wake_queue(netdev_queue *);
 
 extern(C) void virtnet_poll_cleantx( receive_queue *rq)
 {
-    virtnet_info *vi = cast(virtnet_info *)(rq.vq.vdev.priv);
+    virtnet_info *vi = rq.vq.vdev.priv;
     uint index = vq2rxq(rq.vq);
     send_queue *sq;
 
-    pragma(inline, true) @trusted send_queue* helper(virtnet_info *vi, uint index) {
+    pragma(inline, true) @trusted send_queue* helper() {
         dlang_virtnet_info *dvi = container_of!("dlang_virtnet_info", "tmp")(vi.sq);
         assert(dvi.vi == vi);
         return &dvi.sq[index];
     }
-    sq = helper(vi, index);
+    sq = helper();
 
     netdev_queue *txq = __dbind__netdev_get_tx_queue(vi.dev, index);
 
@@ -1619,8 +1605,8 @@ extern(C) void xdp_do_flush_map();
 
 extern(C) int virtnet_poll(napi_struct *napi, int budget)
 {
-    receive_queue *rq = cast(receive_queue*)container_of!("receive_queue", "napi")(napi);
-    virtnet_info *vi = cast(virtnet_info *)(rq.vq.vdev.priv);
+    receive_queue *rq = container_of!("receive_queue", "napi")(napi);
+    virtnet_info *vi = rq.vq.vdev.priv;
     send_queue *sq;
     uint received;
     uint xdp_xmit = 0;
@@ -1665,7 +1651,7 @@ enum xdp_mem_type {
 
 extern(C) int virtnet_open(net_device *dev)
 {
-    virtnet_info *vi = cast(virtnet_info *)__dbind__netdev_priv(dev);
+    virtnet_info *vi = netdev_priv_vinfo(dev);
     int i, err;
 
     dlang_virtnet_info *dvi = container_of!("dlang_virtnet_info", "tmp")(vi.sq);
@@ -1704,8 +1690,8 @@ extern(C) int __dbind__raw_smp_processor_id();
 
 extern(C) int virtnet_poll_tx(napi_struct *napi, int budget)
 {
-     send_queue *sq = cast(send_queue *)container_of!("send_queue", "napi")(napi);
-     virtnet_info *vi = cast(virtnet_info*)sq.vq.vdev.priv;
+     send_queue *sq = container_of!("send_queue", "napi")(napi);
+     virtnet_info *vi = sq.vq.vdev.priv;
      netdev_queue *txq = __dbind__netdev_get_tx_queue(vi.dev, vq2txq(sq.vq));
 
     __dbind__netif_tx_lock(txq, __dbind__raw_smp_processor_id());
@@ -1745,7 +1731,7 @@ extern(C) int xmit_skb(send_queue *sq,  sk_buff *skb)
 {
     virtio_net_hdr_mrg_rxbuf *hdr;
     const ubyte * dest = cast(ubyte *)((cast (ethhdr *)skb.data).h_dest);
-    virtnet_info *vi = cast(virtnet_info *)sq.vq.vdev.priv;
+    virtnet_info *vi = sq.vq.vdev.priv;
     int num_sg;
     uint hdr_len = vi.hdr_len;
     bool can_push;
@@ -1816,7 +1802,7 @@ extern(C) ubyte __dbind__get_xmit_more_bitfield(sk_buff *);
 
 extern(C) netdev_tx_t start_xmit(sk_buff *skb, net_device *dev)
 {
-    virtnet_info *vi = cast(virtnet_info *)__dbind__netdev_priv(dev);
+    virtnet_info *vi = netdev_priv_vinfo(dev);
     int qnum = __dbind__skb_get_queue_mapping(skb);
     send_queue *sq;
 
@@ -1970,7 +1956,7 @@ extern(C) void __dbind__kfree(void *p);
 
 extern(C) int virtnet_set_mac_address(net_device *dev, void *p)
 {
-    virtnet_info *vi = cast(virtnet_info *)__dbind__netdev_priv(dev);
+    virtnet_info *vi = netdev_priv_vinfo(dev);
     virtio_device *vdev = vi.vdev;
     int ret;
     sockaddr *addr;
@@ -2017,7 +2003,7 @@ extern(C) bool __dbind__u64_stats_fetch_retry_irq(const u64_stats_sync *, uint s
 
 extern(C) void virtnet_stats(net_device *dev, rtnl_link_stats64 *tot)
 {
-    virtnet_info *vi = cast(virtnet_info *)__dbind__netdev_priv(dev);
+    virtnet_info *vi = netdev_priv_vinfo(dev);
     uint start;
     int i;
 
@@ -2120,7 +2106,7 @@ extern(C) bool cancel_delayed_work_sync(delayed_work *dwork);
 
 extern(C) int virtnet_close( net_device *dev)
 {
-    virtnet_info *vi = cast(virtnet_info *)__dbind__netdev_priv(dev);
+    virtnet_info *vi = netdev_priv_vinfo(dev);
     int i;
 
     cancel_delayed_work_sync(&vi.refill);
@@ -2162,7 +2148,7 @@ extern(C) void __dbind__netdev_for_each_mc_addr(netdev_hw_addr *ha, net_device *
 
 extern(C) void virtnet_set_rx_mode(net_device *dev)
 {
-    virtnet_info *vi = cast(virtnet_info *)__dbind__netdev_priv(dev);
+    virtnet_info *vi = netdev_priv_vinfo(dev);
     scatterlist[2] sg;
     virtio_net_ctrl_mac *mac_data;
     netdev_hw_addr *ha;
@@ -2263,7 +2249,7 @@ enum VIRTIO_NET_CTRL_VLAN_DEL = 1;
 extern(C) int virtnet_vlan_rx_add_vid(net_device *dev,
                    ushort proto, ushort vid)
 {
-    virtnet_info *vi = cast(virtnet_info *)__dbind__netdev_priv(dev);
+    virtnet_info *vi = netdev_priv_vinfo(dev);
     scatterlist sg;
 
     vi.ctrl.vid = __dbind__cpu_to_virtio16(vi.vdev, vid);
@@ -2279,7 +2265,7 @@ extern(C) int virtnet_vlan_rx_add_vid(net_device *dev,
 extern(C) int virtnet_vlan_rx_kill_vid( net_device *dev,
                     ushort proto, ushort vid)
 {
-    virtnet_info *vi = cast(virtnet_info *)__dbind__netdev_priv(dev);
+    virtnet_info *vi = netdev_priv_vinfo(dev);
     scatterlist sg;
 
     vi.ctrl.vid = __dbind__cpu_to_virtio16(vi.vdev, vid);
@@ -2389,21 +2375,21 @@ auto hlist_entry_safe(string type, string member)(hlist_node *node) {
 
 extern(C) int virtnet_cpu_online(uint cpu, hlist_node *node)
 {
-    virtnet_info *vi = cast(virtnet_info *)hlist_entry_safe!("virtnet_info", "node")(node);
+    virtnet_info *vi = hlist_entry_safe!("virtnet_info", "node")(node);
     virtnet_set_affinity(vi);
     return 0;
 }
 
 extern(C) int virtnet_cpu_dead(uint cpu, hlist_node *node)
 {
-    virtnet_info *vi = cast(virtnet_info *)hlist_entry_safe!("virtnet_info", "node_dead")(node);
+    virtnet_info *vi = hlist_entry_safe!("virtnet_info", "node_dead")(node);
     virtnet_set_affinity(vi);
     return 0;
 }
 
 extern(C) int virtnet_cpu_down_prep(uint cpu, hlist_node *node)
 {
-    virtnet_info *vi = cast(virtnet_info *)hlist_entry_safe!("virtnet_info", "node")(node);
+    virtnet_info *vi = hlist_entry_safe!("virtnet_info", "node")(node);
 
     virtnet_clean_affinity(vi, cpu);
     return 0;
@@ -2442,7 +2428,7 @@ extern(C) void virtnet_cpu_notif_remove( virtnet_info *vi)
 extern(C) void virtnet_get_ringparam(net_device *dev,
                  ethtool_ringparam *ring)
 {
-    virtnet_info *vi = cast(virtnet_info *)__dbind__netdev_priv(dev);
+    virtnet_info *vi = netdev_priv_vinfo(dev);
 
     dlang_virtnet_info *dvi = container_of!("dlang_virtnet_info", "tmp")(vi.sq);
     assert(dvi.vi == vi);
@@ -2459,7 +2445,7 @@ extern(C) const(char) *__dbind__virtio_bus_name(virtio_device *);
 extern(C) void virtnet_get_drvinfo(net_device *dev,
                  ethtool_drvinfo *info)
 {
-    virtnet_info *vi = cast(virtnet_info *)__dbind__netdev_priv(dev);
+    virtnet_info *vi = netdev_priv_vinfo(dev);
     virtio_device *vdev = vi.vdev;
 
     strlcpy(info.driver.ptr, "virtio_net_tmp", info.driver.sizeof);
@@ -2474,7 +2460,7 @@ extern(C) void __dbind__put_online_cpus();
 extern(C) int virtnet_set_channels( net_device *dev,
                  ethtool_channels *channels)
 {
-    virtnet_info *vi = cast(virtnet_info*)__dbind__netdev_priv(dev);
+    virtnet_info *vi = netdev_priv_vinfo(dev);
     ushort queue_pairs = cast(ushort)channels.combined_count;
     int err;
 
@@ -2507,9 +2493,9 @@ extern(C) int netif_set_real_num_rx_queues(net_device *dev, uint rxq);
 extern(C) int snprintf(char *buf, size_t size, const char *fmt, ...);
 extern(C) int netif_set_real_num_tx_queues(net_device *dev, uint txq);
 
-extern(C) void virtnet_get_strings( net_device *dev, uint stringset, ubyte *data)
+extern(C) void virtnet_get_strings(net_device *dev, uint stringset, ubyte *data)
 {
-    virtnet_info *vi = cast(virtnet_info*)__dbind__netdev_priv(dev);
+    virtnet_info *vi = netdev_priv_vinfo(dev);
     char *p = cast(char *)data;
     uint i, j;
 
@@ -2536,7 +2522,7 @@ extern(C) void virtnet_get_strings( net_device *dev, uint stringset, ubyte *data
 
 extern(C) int virtnet_get_sset_count(net_device *dev, int sset)
 {
-    virtnet_info *vi = cast(virtnet_info*)__dbind__netdev_priv(dev);
+    virtnet_info *vi = netdev_priv_vinfo(dev);
 
     switch (sset) {
     case ethtool_stringset.ETH_SS_STATS:
@@ -2550,7 +2536,7 @@ extern(C) int virtnet_get_sset_count(net_device *dev, int sset)
 extern(C) void virtnet_get_ethtool_stats( net_device *dev,
                        ethtool_stats *stats, ulong *data)
 {
-    virtnet_info *vi = cast(virtnet_info*)__dbind__netdev_priv(dev);
+    virtnet_info *vi = netdev_priv_vinfo(dev);
     uint idx = 0, start, i, j;
     const(ubyte) *stats_base;
     size_t offset;
@@ -2593,7 +2579,7 @@ extern(C) void virtnet_get_ethtool_stats( net_device *dev,
 extern(C) void virtnet_get_channels( net_device *dev,
                   ethtool_channels *channels)
 {
-     virtnet_info *vi = cast(virtnet_info*)__dbind__netdev_priv(dev);
+     virtnet_info *vi = netdev_priv_vinfo(dev);
 
     channels.combined_count = vi.curr_queue_pairs;
     channels.max_combined = vi.max_queue_pairs;
@@ -2638,7 +2624,7 @@ extern(C) int __dbind__ethtool_validate_speed(uint speed);
 extern(C) int virtnet_set_link_ksettings( net_device *dev,
                       const ethtool_link_ksettings *cmd)
 {
-    virtnet_info *vi = cast(virtnet_info*)__dbind__netdev_priv(dev);
+    virtnet_info *vi = netdev_priv_vinfo(dev);
     uint speed;
 
     speed = cmd.base.speed;
@@ -2656,7 +2642,7 @@ extern(C) int virtnet_set_link_ksettings( net_device *dev,
 extern(C) int virtnet_get_link_ksettings( net_device *dev,
                        ethtool_link_ksettings *cmd)
 {
-    virtnet_info *vi = cast(virtnet_info*)__dbind__netdev_priv(dev);
+    virtnet_info *vi = netdev_priv_vinfo(dev);
 
     cmd.base.speed = vi.speed;
     cmd.base.duplex = vi.duplex;
@@ -2670,7 +2656,7 @@ enum DUPLEX_UNKNOWN = 0xff;
 
 extern(C) void virtnet_init_settings( net_device *dev)
 {
-    virtnet_info *vi = cast(virtnet_info*)__dbind__netdev_priv(dev);
+    virtnet_info *vi = netdev_priv_vinfo(dev);
 
     vi.speed = SPEED_UNKNOWN;
     vi.duplex = DUPLEX_UNKNOWN;
@@ -2706,7 +2692,7 @@ extern(C) bool __dbind__netif_running(const net_device *dev);
 
 extern(C) void virtnet_freeze_down( virtio_device *vdev)
 {
-    virtnet_info *vi = cast(virtnet_info*)vdev.priv;
+    virtnet_info *vi = vdev.priv;
     int i;
 
     /* Make sure no work handler is accessing the device */
@@ -2733,9 +2719,9 @@ extern(C) void virtnet_freeze_down( virtio_device *vdev)
 extern(C) void __dbind__virtio_device_ready(virtio_device *dev);
 extern(C) void netif_device_attach(net_device *dev);
 
-extern(C) int virtnet_restore_up( virtio_device *vdev)
+extern(C) int virtnet_restore_up(virtio_device *vdev)
 {
-    virtnet_info *vi = cast(virtnet_info*)vdev.priv;
+    virtnet_info *vi = vdev.priv;
     int err, i;
 
     err = init_vqs(vi);
@@ -2827,7 +2813,7 @@ extern(C) void __dbind__rcu_assign_pointer(bpf_prog *p, bpf_prog* v);
 extern(C) int virtnet_xdp_set(net_device *dev, bpf_prog *prog, netlink_ext_ack *extack)
 {
     c_ulong max_sz = PAGE_SIZE - padded_vnet_hdr.sizeof;
-    virtnet_info *vi = cast(virtnet_info *)__dbind__netdev_priv(dev);
+    virtnet_info *vi = netdev_priv_vinfo(dev);
     bpf_prog *old_prog;
     ushort xdp_qp = 0, curr_qp;
     int i, err;
@@ -2917,7 +2903,7 @@ err:
 
 extern(C) uint virtnet_xdp_query(net_device *dev)
 {
-    virtnet_info *vi = cast(virtnet_info*)__dbind__netdev_priv(dev);
+    virtnet_info *vi = netdev_priv_vinfo(dev);
     const(bpf_prog) *xdp_prog;
     int i;
 
@@ -2951,7 +2937,7 @@ extern(C) int virtnet_xdp(net_device *dev, netdev_bpf *xdp)
 extern(C) int virtnet_get_phys_port_name( net_device *dev, char *buf,
                       size_t len)
 {
-    virtnet_info *vi = cast(virtnet_info*)__dbind__netdev_priv(dev);
+    virtnet_info *vi = netdev_priv_vinfo(dev);
     int ret;
 
     if (!__dbind__virtio_has_feature(vi.vdev, VIRTIO_NET_F_STANDBY))
@@ -2977,7 +2963,7 @@ extern(C) int __dbind__virtio_cread_feature_1(virtio_device *vdev, int fbit, ush
 
 extern(C) void virtnet_config_changed_work(work_struct *work)
 {
-    virtnet_info *vi = cast(virtnet_info *)container_of!("virtnet_info", "config_work")(work);
+    virtnet_info *vi = container_of!("virtnet_info", "config_work")(work);
     ushort v;
 
     if (__dbind__virtio_cread_feature_1(vi.vdev, VIRTIO_NET_F_STATUS, &v) < 0)
@@ -3009,7 +2995,7 @@ extern(C) bool __dbind__schedule_work(work_struct *work);
 
 extern(C) void virtnet_config_changed( virtio_device *vdev)
 {
-    virtnet_info *vi = cast(virtnet_info *)vdev.priv;
+    virtnet_info *vi = vdev.priv;
 
     __dbind__schedule_work(&vi.config_work);
 }
@@ -3377,7 +3363,7 @@ err:
     //extern(C) ssize_t mergeable_rx_buffer_size_show(netdev_rx_queue *queue,
             //char *buf)
     //{
-        //virtnet_info *vi = cast(virtnet_info*)__dbind__netdev_priv(queue.dev);
+        //virtnet_info *vi = netdev_priv_vinfo(queue.dev);
         //uint queue_index = __dbind__get_netdev_rx_queue_index(queue);
         //uint headroom = virtnet_get_headroom(vi);
         //uint tailroom = headroom ? skb_shared_info.sizeof : 0;
@@ -3391,14 +3377,10 @@ err:
                            //SKB_DATA_ALIGN(headroom + tailroom)));
     //}
 
-//#define __ATTR_RO(_name) {						\
-    //.attr	= { .name = __stringify(_name), .mode = 0444 },		\
-    //.show	= _name##_show,						\
-//}
     //static rx_queue_attribute mergeable_rx_buffer_size_attribute =
-        ////__ATTR_RO(mergeable_rx_buffer_size);
-        //.attr = {.name = "mergeable_rx_buffer_size", .mode = 0444 },
-        //.show = mergeable_rx_buffer_size_show
+        //.attr = {.name = "mergeable_rx_buffer_size", .mode = std.conv.octal!444 },
+        //.show = mergeable_rx_buffer_size_show;
+    
 
     //static attribute *virtio_net_mrg_rx_attrs[] = {
         //&mergeable_rx_buffer_size_attribute.attr,
@@ -3407,7 +3389,7 @@ err:
 
     //const attribute_group virtio_net_mrg_rx_group = {
         //.name = "virtio_net",
-        //.attrs = virtio_net_mrg_rx_attrs
+        //.attrs = virtio_net_mrg_rx_attrs,
     //};
 //}
 
@@ -3569,7 +3551,7 @@ extern(C) int virtnet_probe(virtio_device *vdev)
         __dbind__eth_hw_addr_random(dev);
 
     //[> Set up our device-specific information <]
-    vi = cast(virtnet_info*)__dbind__netdev_priv(dev);
+    vi = netdev_priv_vinfo(dev);
     vi.dev = dev;
     vi.vdev = vdev;
     vdev.priv = vi;
@@ -3722,7 +3704,7 @@ extern(C) void remove_vq_common( virtnet_info *vi)
 
 extern(C) void virtnet_remove( virtio_device *vdev)
 {
-    virtnet_info *vi = cast(virtnet_info*)vdev.priv;
+    virtnet_info *vi = vdev.priv;
 
     virtnet_cpu_notif_remove(vi);
 
@@ -3740,7 +3722,7 @@ extern(C) void virtnet_remove( virtio_device *vdev)
 
 extern(C) int virtnet_freeze( virtio_device *vdev)
 {
-    virtnet_info *vi = cast(virtnet_info*)vdev.priv;
+    virtnet_info *vi = vdev.priv;
 
     virtnet_cpu_notif_remove(vi);
     virtnet_freeze_down(vdev);
@@ -3751,7 +3733,7 @@ extern(C) int virtnet_freeze( virtio_device *vdev)
 
 extern(C) int virtnet_restore( virtio_device *vdev)
 {
-    virtnet_info *vi = cast(virtnet_info*)vdev.priv;
+    virtnet_info *vi = vdev.priv;
     int err;
 
     err = virtnet_restore_up(vdev);

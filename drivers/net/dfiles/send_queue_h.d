@@ -5,11 +5,8 @@ import lockdep_map_h : lockdep_map;
 import core.stdc.config : c_ulong;
 
 enum PAGE_SHIFT = 12;
-//#ifdef __ASSEMBLY__
 enum PAGE_SIZE = (1 << PAGE_SHIFT);
-//#else
-//#define PAGE_SIZE	(1UL << PAGE_SHIFT)
-//#endif
+
 static if ((65536/PAGE_SIZE + 1) < 16) {
     enum MAX_SKB_FRAGS = 16UL;
 }

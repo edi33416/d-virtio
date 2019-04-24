@@ -1,7 +1,8 @@
-import list_head_h;
-import mod_devicetable_h;
+import list_head_h : list_head;
+import mod_devicetable_h : virtio_device_id;
 import spinlock_types_h : spinlock_t;
 import device_h : device;
+import virtnet_info_h : virtnet_info;
 
 struct cpumask;
 struct vringh_config_ops;
@@ -31,7 +32,9 @@ struct virtio_config_ops {
     extern(C) const cpumask * function(virtio_device *vdev, int index) get_vq_affinity;
 }
 
-struct virtio_device {
+alias virtio_device = virtio_device_t!virtnet_info;
+
+struct virtio_device_t(T) {
     int index;
     bool failed;
     bool config_enabled;
@@ -43,7 +46,7 @@ struct virtio_device {
     const vringh_config_ops *vringh_config;
     list_head vqs;
     ulong features;
-    void *priv;
+    T *priv;
 }
 
 struct virtqueue {

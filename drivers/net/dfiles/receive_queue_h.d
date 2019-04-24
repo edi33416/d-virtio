@@ -2,7 +2,7 @@ import napi_struct_h : napi_struct;
 import virtio_h : virtqueue;
 import bpf_prog_h : bpf_prog;
 import page_h : d_alias_page = page;
-import send_queue_h : scatterlist, MAX_SKB_FRAGS, u64_stats_sync, PAGE_SIZE;
+import send_queue_h : scatterlist, u64_stats_sync, PAGE_SIZE;
 import net_device_h : net_device;
 import cache_h : SMP_CACHE_BYTES, ____cacheline_aligned;
 import mutex_h : BITS_PER_LONG;
@@ -19,6 +19,15 @@ struct page_frag {
         ushort size;
     }
 }
+
+static if ((65536/PAGE_SIZE + 1) < 16) {
+    enum MAX_SKB_FRAGS = 16UL;
+}
+else
+{
+    enum MAX_SKB_FRAGS = (65536/PAGE_SIZE + 1);
+}
+
 
 struct virtnet_rq_stats {
     u64_stats_sync[0] syncp;
