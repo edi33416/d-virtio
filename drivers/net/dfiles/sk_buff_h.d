@@ -241,22 +241,6 @@ struct sk_buff {
 
         enum s = q{
             mixin(bitfields!(
-                //ubyte, "pkt_type", 3,
-                //ubyte, "ignore_df", 1,
-                //ubyte, "nf_trace", 1,
-                //ubyte, "ip_summed", 2,
-                //ubyte, "ooo_okay", 1,
-
-                //ubyte, "l4_hash", 1,
-                //ubyte, "sw_hash", 1,
-                //ubyte, "wifi_acked_valid", 1,
-                //ubyte, "wifi_acked", 1,
-                //ubyte, "no_fcs", 1,
-                //[> Indicates the inner headers are valid in the skbuff. <]
-                //ubyte, "encapsulation", 1,
-                //ubyte, "encap_hdr_csum", 1,
-                //ubyte, "csum_valid", 1,
-
                 ubyte, "csum_complete_sw", 1,
                 ubyte, "csum_level", 2,
                 ubyte, "csum_not_inet", 1,

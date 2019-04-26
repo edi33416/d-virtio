@@ -1,4 +1,4 @@
-import core.stdc.config;
+import core.stdc.config : c_ulong, c_long;
 import virtio_h: virtio_net_config, virtio_config_ops,virtio_device,
        virtqueue, virtio_net_ctrl_mac, vq_callback_t;
 import mod_devicetable_h;
