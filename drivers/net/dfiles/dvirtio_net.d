@@ -565,7 +565,7 @@ extern(C) send_queue * virtnet_xdp_sq(virtnet_info *vi)
     pragma(inline, true) @trusted send_queue* helper() {
         dlang_virtnet_info *dvi = container_of!("dlang_virtnet_info", "tmp")(vi.sq);
         assert(dvi.vi == vi);
-        return &vi.sq[qp];
+        return &dvi.sq[qp];
     }
 
     return helper();
