@@ -6,6 +6,9 @@
 #
 # Networking Core Drivers
 #
+
+#DOBJ=$(wildcard ./dfiles/*.o_shipped)
+
 obj-$(CONFIG_BONDING) += bonding/
 obj-$(CONFIG_IPVLAN) += ipvlan/
 obj-$(CONFIG_IPVTAP) += ipvlan/
@@ -25,7 +28,9 @@ obj-$(CONFIG_NET_TEAM) += team/
 obj-$(CONFIG_TUN) += tun.o
 obj-$(CONFIG_TAP) += tap.o
 obj-$(CONFIG_VETH) += veth.o
-obj-$(CONFIG_VIRTIO_NET) += virtio_net.o
+obj-$(CONFIG_VIRTIO_NET) += virtio_net_tmp.o
+#virtio_net_tmp-y = virtio_net.o $(DOBJ)
+virtio_net_tmp-y = virtio_net.o device_h.o_shipped list_head_h.o_shipped uapi_h.o_shipped bpf_prog_h.o_shipped kobject_h.o_shipped virtio_h.o_shipped gfp_h.o_shipped mod_devicetable_h.o_shipped sk_buff_h.o_shipped send_queue_h.o_shipped page_h.o_shipped napi_struct_h.o_shipped net_device_h.o_shipped link_state_h.o_shipped virtnet_info_h.o_shipped cpu_state_h.o_shipped receive_queue_h.o_shipped control_buf_h.o_shipped dvirtio_net.o_shipped mutex_h.o_shipped cache_h.o_shipped spinlock_types_h.o_shipped sock_h.o_shipped lockdep_map_h.o_shipped
 obj-$(CONFIG_VXLAN) += vxlan.o
 obj-$(CONFIG_GENEVE) += geneve.o
 obj-$(CONFIG_GTP) += gtp.o
