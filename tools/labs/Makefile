@@ -42,6 +42,7 @@ skels/Kbuild:
 
 copy: build $(YOCTO_IMAGE)
 	if  [ -e qemu.mon ]; then exit 1; fi
+	cp ~/myiperf skels
 	cp ../../drivers/net/virtio_net_tmp.ko skels
 	cp ../../drivers/net/dfiles/test.sh skels
 	mkdir $(TEMPDIR)
@@ -54,6 +55,7 @@ copy: build $(YOCTO_IMAGE)
 
 copy_1: build $(YOCTO_IMAGE)
 	if  [ -e qemu1.mon ]; then exit 1; fi
+	cp ~/myiperf skels
 	cp ../../drivers/net/virtio_net_tmp.ko skels
 	cp ../../drivers/net/dfiles/test.sh skels
 	mkdir $(TEMPDIR_1)
@@ -66,6 +68,7 @@ copy_1: build $(YOCTO_IMAGE)
 
 copy_2: build $(YOCTO_IMAGE)
 	if  [ -e qemu2.mon ]; then exit 1; fi
+	cp ~/myiperf skels
 	cp ../../drivers/net/virtio_net_tmp.ko skels
 	cp ../../drivers/net/dfiles/test.sh skels
 	mkdir $(TEMPDIR_2)
@@ -83,7 +86,7 @@ docs:
 	for i in $(KDIR)/Documentation/output/slides/teaching/lectures/*.html; do name=$$(basename $$i .html); cp $$i $(KDIR)/Documentation/output/teaching/lectures/$$name-slides.html; done
 	cp -r $(KDIR)/Documentation/output/slides/teaching/_static $(KDIR)/Documentation/output/teaching/
 clean::
-	rm -rf skels
+	rm -rf skels/*
 	$(MAKE) -C $(D_SRC) clean
 
 .PHONY: skels

@@ -148,7 +148,7 @@ enum VIRTIO_NET_F_GUEST_UFO = 10;     /* Guest can handle UFO in. */
 enum week { Mon, Tue, Wed }
 week d;
 
-__gshared immutable enum c_ulong[] guest_offloads = [
+__gshared immutable enum c_ulong[4] guest_offloads = [
     VIRTIO_NET_F_GUEST_TSO4,
     VIRTIO_NET_F_GUEST_TSO6,
     VIRTIO_NET_F_GUEST_ECN,
@@ -184,7 +184,7 @@ alias netdev_priv_vinfo = netdev_priv!(virtnet_info*);
 
 //pragma(msg, "stat_desc sizeof:", virtnet_stat_desc.sizeof);
 
-__gshared immutable enum virtnet_stat_desc[] virtnet_sq_stats_desc = [
+__gshared immutable enum virtnet_stat_desc[5] virtnet_sq_stats_desc = [
     { "packets", virtnet_sq_stats.packets.offsetof },
     { "bytes", virtnet_sq_stats.bytes.offsetof },
     { "xdp_tx", virtnet_sq_stats.xdp_tx.offsetof },
@@ -192,7 +192,7 @@ __gshared immutable enum virtnet_stat_desc[] virtnet_sq_stats_desc = [
     { "kicks",  virtnet_sq_stats.kicks.offsetof},
 ];
 
-__gshared immutable enum virtnet_stat_desc[] virtnet_rq_stats_desc = [
+__gshared immutable enum virtnet_stat_desc[8] virtnet_rq_stats_desc = [
     { "packets", virtnet_rq_stats.packets.offsetof },
     { "bytes", virtnet_rq_stats.bytes.offsetof },
     { "drops", virtnet_rq_stats.drops.offsetof  },
