@@ -3,8 +3,26 @@ KDIR=$(shell realpath $(PWD)/../..)
 LABS?=$(shell cd templates && find -mindepth 1 -maxdepth 1 -type d)
 MODS=$(shell cd templates && find $(LABS) -mindepth 1 -name Kbuild | xargs dirname)
 TODO?=0
+#ARCH=x86
+ARCH=x86_64
 
 include qemu/Makefile
+
+run: copy
+	sudo iptables -t nat -A POSTROUTING -o enp2s0 -j MASQUERADE
+	sudo sysctl -w net.ipv4.ip_forward=1
+	$(MAKE) boot ARCH=$(ARCH)
+
+
+run_1: copy_1
+	sudo iptables -t nat -A POSTROUTING -o enp2s0 -j MASQUERADE
+	sudo sysctl -w net.ipv4.ip_forward=1
+	$(MAKE) boot_1 ARCH=$(ARCH)
+
+run_2: copy_2
+	sudo iptables -t nat -A POSTROUTING -o enp2s0 -j MASQUERADE
+	sudo sysctl -w net.ipv4.ip_forward=1
+	$(MAKE) boot_2 ARCH=$(ARCH)
 
 skels:
 	mkdir -p skels
@@ -21,6 +39,8 @@ build: $(KCONFIG) skels/Kbuild
 	for i in $(shell find skels -name Makefile | xargs dirname); do $(MAKE) -C $$i; done
 
 TEMPDIR := $(shell mktemp -u)
+TEMPDIR_1 := $(shell mktemp -u)
+TEMPDIR_2 := $(shell mktemp -u)
 
 copy: $(YOCTO_IMAGE)
 	if  [ -e qemu.mon ]; then exit 1; fi
@@ -31,6 +51,30 @@ copy: $(YOCTO_IMAGE)
 	sudo umount $(TEMPDIR)
 	rmdir $(TEMPDIR)
 
+copy_1: build $(YOCTO_IMAGE)
+	if  [ -e qemu1.mon ]; then exit 1; fi
+	cp ~/myiperf skels
+	cp ../../drivers/net/virtio_net.ko skels
+	mkdir $(TEMPDIR_1)
+	sudo mount -t ext4 -o loop $(YOCTO_IMAGE) $(TEMPDIR_1)
+	find skels -type f \( -name *.ko -or -executable \)
+	find skels -type f \( -name *.ko -or -executable \) | xargs sudo cp --parents -t $(TEMPDIR_1)/home/root || true
+	find skels -type d \( -name checker \) | xargs sudo cp -r --parents -t $(TEMPDIR_1)/home/root || true
+	sudo umount $(TEMPDIR_1)
+	rmdir $(TEMPDIR_1)
+
+copy_2: build $(YOCTO_IMAGE)
+	if  [ -e qemu2.mon ]; then exit 1; fi
+	cp ~/myiperf skels
+	cp ../../drivers/net/virtio_net.ko skels
+	mkdir $(TEMPDIR_2)
+	sudo mount -t ext4 -o loop $(YOCTO_IMAGE) $(TEMPDIR_2)
+	find skels -type f \( -name *.ko -or -executable \)
+	find skels -type f \( -name *.ko -or -executable \) | xargs sudo cp --parents -t $(TEMPDIR_2)/home/root || true
+	find skels -type d \( -name checker \) | xargs sudo cp -r --parents -t $(TEMPDIR_2)/home/root || true
+	sudo umount $(TEMPDIR_2)
+	rmdir $(TEMPDIR_2)
+
 docs:
 	pip install --user -r requirements.txt
 	$(MAKE) -C $(KDIR) DOCBOOKS= SPHINXDIRS="teaching" htmldocs
@@ -38,6 +82,6 @@ docs:
 	for i in $(KDIR)/Documentation/output/slides/teaching/lectures/*.html; do name=$$(basename $$i .html); cp $$i $(KDIR)/Documentation/output/teaching/lectures/$$name-slides.html; done
 	cp -r $(KDIR)/Documentation/output/slides/teaching/_static $(KDIR)/Documentation/output/teaching/
 clean::
-	rm -rf skels
+	rm -rf skels/*
 
 .PHONY: skels
