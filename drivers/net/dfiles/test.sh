@@ -14,4 +14,4 @@ echo "279be1aeba9eb6f9293e50d394727867  -" > ref
 wget -O - http://swarm.cs.pub.ro/index.html | tee index.html | md5sum > out
 cmp -s ref out && echo '### SUCCESS: Files Are Identical! ###' || echo '### WARN'
 rm ref out index.html
-rmmod $module_path
+#rmmod $module_path

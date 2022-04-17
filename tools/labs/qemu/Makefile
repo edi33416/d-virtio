@@ -8,14 +8,21 @@ KCONFIG=$(KDIR)/.config
 NTTCP=$(KDIR)/tools/labs/templates/assignments/6-e100/nttcp
 
 YOCTO_URL=http://downloads.yoctoproject.org/releases/yocto/yocto-2.3/machines/qemu/qemux86-64
+#YOCTO_URL=http://downloads.yoctoproject.org/releases/yocto/yocto-3.4.3/machines/qemu/qemux86-64/
 #YOCTO_IMAGE=core-image-minimal-qemux86-64.ext4
 #YOCTO_URL=http://downloads.yoctoproject.org/releases/yocto/yocto-2.3/machines/qemu/qemu$(ARCH)/
 #YOCTO_IMAGE=core-image-minimal-qemu$(ARCH).ext4
 #YOCTO_IMAGE=core-image-minimal-dev-qemu$(ARCH).ext4
 #YOCTO_IMAGE=core-image-sato-dev-qemux86-64.ext4
 #YOCTO_IMAGE=core-image-sato-qemu$(ARCH).ext4
-YOCTO_IMAGE=core-image-sato-sdk-qemux86-64.ext4
-YOCTO_IMAGE2=2core-image-sato-sdk-qemux86-64.ext4
+#YOCTO_IMAGE=core-image-sato-qemux86-64.ext4
+#YOCTO_IMAGE=2core-image-sato-qemux86-64.ext4
+
+YOCTO_IMAGE=core-image-minimal-qemux86-64.ext4
+YOCTO_IMAGE2=2core-image-minimal-qemux86-64.ext4
+
+#YOCTO_IMAGE=core-image-sato-sdk-qemux86-64.ext4
+#YOCTO_IMAGE2=2core-image-sato-sdk-qemux86-64.ext4
 
 QEMU_OPTS = -kernel $(ZIMAGE) \
 	-device virtio-serial \
@@ -27,6 +34,8 @@ QEMU_OPTS = -kernel $(ZIMAGE) \
 	-drive file=disk1.img,if=virtio,format=raw \
 	-drive file=disk2.img,if=virtio,format=raw \
 	--append "root=/dev/vda console=hvc0" \
+	--enable-kvm \
+	-m 1G \
 	--display $(QEMU_DISPLAY) -s
 
 QEMU_OPTS_1 = -kernel $(ZIMAGE) \
@@ -39,18 +48,22 @@ QEMU_OPTS_1 = -kernel $(ZIMAGE) \
 	-drive file=disk1.img,if=virtio,format=raw \
 	-drive file=disk2.img,if=virtio,format=raw \
 	--append "root=/dev/vda console=hvc0" \
+	--enable-kvm \
+	-m 1G \
 	--display $(QEMU_DISPLAY) -s
 
 QEMU_OPTS_2 = -kernel $(ZIMAGE) \
 	-device virtio-serial \
 	-chardev pty,id=virtiocon0 -device virtconsole,chardev=virtiocon0 \
 	-serial pipe:pipe3 -serial pipe:pipe4 \
-	-net nic,model=virtio,vlan=0 -net tap,ifname=tap2,vlan=0,script=no,downscript=no \
-	-net nic,model=i82559er,vlan=1 -net tap,ifname=tap3,vlan=1,script=no,downscript=no \
+	-net nic,model=virtio,vlan=2 -net tap,ifname=tap2,vlan=2,script=no,downscript=no \
+	-net nic,model=i82559er,vlan=3 -net tap,ifname=tap3,vlan=3,script=no,downscript=no \
 	-drive file=$(YOCTO_IMAGE2),if=virtio,format=raw \
 	-drive file=disk3.img,if=virtio,format=raw \
 	-drive file=disk4.img,if=virtio,format=raw \
 	--append "root=/dev/vda console=hvc0" \
+	--enable-kvm \
+	-m 1G \
 	--display $(QEMU_DISPLAY) -s
 
 boot: .modinst tap0 tap1 pipe1.in pipe1.out pipe2.in pipe2.out disk1.img disk2.img nttcp-run

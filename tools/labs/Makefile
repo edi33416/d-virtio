@@ -9,18 +9,18 @@ ARCH=x86_64
 include qemu/Makefile
 
 run: copy
-	sudo iptables -t nat -A POSTROUTING -o enp2s0 -j MASQUERADE
+	sudo iptables -t nat -A POSTROUTING -o eno1 -j MASQUERADE
 	sudo sysctl -w net.ipv4.ip_forward=1
 	$(MAKE) boot ARCH=$(ARCH)
 
 
 run_1: copy_1
-	sudo iptables -t nat -A POSTROUTING -o enp2s0 -j MASQUERADE
+	sudo iptables -t nat -A POSTROUTING -o eno1 -j MASQUERADE
 	sudo sysctl -w net.ipv4.ip_forward=1
 	$(MAKE) boot_1 ARCH=$(ARCH)
 	
 run_2: copy_2
-	sudo iptables -t nat -A POSTROUTING -o enp2s0 -j MASQUERADE
+	sudo iptables -t nat -A POSTROUTING -o eno1 -j MASQUERADE
 	sudo sysctl -w net.ipv4.ip_forward=1
 	$(MAKE) boot_2 ARCH=$(ARCH)
 
@@ -45,6 +45,7 @@ copy: build $(YOCTO_IMAGE)
 	cp ~/myiperf skels
 	cp ../../drivers/net/virtio_net_tmp.ko skels
 	cp ../../drivers/net/dfiles/test.sh skels
+	cp ../../drivers/net/dfiles/test2.sh skels
 	mkdir $(TEMPDIR)
 	sudo mount -t ext4 -o loop $(YOCTO_IMAGE) $(TEMPDIR)
 	find skels -type f \( -name *.ko -or -executable \)
@@ -58,21 +59,24 @@ copy_1: build $(YOCTO_IMAGE)
 	cp ~/myiperf skels
 	cp ../../drivers/net/virtio_net_tmp.ko skels
 	cp ../../drivers/net/dfiles/test.sh skels
+	cp ../../drivers/net/dfiles/test2.sh skels
 	mkdir $(TEMPDIR_1)
 	sudo mount -t ext4 -o loop $(YOCTO_IMAGE) $(TEMPDIR_1)
 	find skels -type f \( -name *.ko -or -executable \)
 	find skels -type f \( -name *.ko -or -executable \) | xargs sudo cp --parents -t $(TEMPDIR_1)/home/root || true
 	find skels -type d \( -name checker \) | xargs sudo cp -r --parents -t $(TEMPDIR_1)/home/root || true
+	echo "HERE BAROS"
 	sudo umount $(TEMPDIR_1)
 	rmdir $(TEMPDIR_1)
 
-copy_2: build $(YOCTO_IMAGE)
+copy_2: build $(YOCTO_IMAGE2)
 	if  [ -e qemu2.mon ]; then exit 1; fi
 	cp ~/myiperf skels
 	cp ../../drivers/net/virtio_net_tmp.ko skels
 	cp ../../drivers/net/dfiles/test.sh skels
+	cp ../../drivers/net/dfiles/test2.sh skels
 	mkdir $(TEMPDIR_2)
-	sudo mount -t ext4 -o loop $(YOCTO_IMAGE) $(TEMPDIR_2)
+	sudo mount -t ext4 -o loop $(YOCTO_IMAGE2) $(TEMPDIR_2)
 	find skels -type f \( -name *.ko -or -executable \)
 	find skels -type f \( -name *.ko -or -executable \) | xargs sudo cp --parents -t $(TEMPDIR_2)/home/root || true
 	find skels -type d \( -name checker \) | xargs sudo cp -r --parents -t $(TEMPDIR_2)/home/root || true
