@@ -28,8 +28,8 @@ QEMU_OPTS = -kernel $(ZIMAGE) \
 	-device virtio-serial \
 	-chardev pty,id=virtiocon0 -device virtconsole,chardev=virtiocon0 \
 	-serial pipe:pipe1 -serial pipe:pipe2 \
-	-net nic,model=virtio,vlan=0 -net tap,ifname=tap0,vlan=0,script=no,downscript=no \
-	-net nic,model=i82559er,vlan=1 -net tap,ifname=tap1,vlan=1,script=no,downscript=no \
+	-netdev tap,id=tap0,ifname=tap0,script=no,downscript=no -net nic,netdev=tap0,model=virtio \
+	-netdev tap,id=tap1,ifname=tap1,script=no,downscript=no -net nic,netdev=tap1,model=i82559er \
 	-drive file=$(YOCTO_IMAGE),if=virtio,format=raw \
 	-drive file=disk1.img,if=virtio,format=raw \
 	-drive file=disk2.img,if=virtio,format=raw \
@@ -42,8 +42,8 @@ QEMU_OPTS_1 = -kernel $(ZIMAGE) \
 	-device virtio-serial \
 	-chardev pty,id=virtiocon0 -device virtconsole,chardev=virtiocon0 \
 	-serial pipe:pipe1 -serial pipe:pipe2 \
-	-net nic,model=virtio,vlan=0 -net tap,ifname=tap0,vlan=0,script=no,downscript=no \
-	-net nic,model=i82559er,vlan=1 -net tap,ifname=tap1,vlan=1,script=no,downscript=no \
+	-netdev tap,id=tap0,ifname=tap0,script=no,downscript=no -net nic,netdev=tap0,model=virtio \
+	-netdev tap,id=tap1,ifname=tap1,script=no,downscript=no -net nic,netdev=tap1,model=i82559er \
 	-drive file=$(YOCTO_IMAGE),if=virtio,format=raw \
 	-drive file=disk1.img,if=virtio,format=raw \
 	-drive file=disk2.img,if=virtio,format=raw \
@@ -56,8 +56,8 @@ QEMU_OPTS_2 = -kernel $(ZIMAGE) \
 	-device virtio-serial \
 	-chardev pty,id=virtiocon0 -device virtconsole,chardev=virtiocon0 \
 	-serial pipe:pipe3 -serial pipe:pipe4 \
-	-net nic,model=virtio,vlan=2 -net tap,ifname=tap2,vlan=2,script=no,downscript=no \
-	-net nic,model=i82559er,vlan=3 -net tap,ifname=tap3,vlan=3,script=no,downscript=no \
+	-netdev tap,id=tap2,ifname=tap2,script=no,downscript=no -net nic,netdev=tap2,model=virtio \
+	-netdev tap,id=tap3,ifname=tap3,script=no,downscript=no -net nic,netdev=tap3,model=i82559er \
 	-drive file=$(YOCTO_IMAGE2),if=virtio,format=raw \
 	-drive file=disk3.img,if=virtio,format=raw \
 	-drive file=disk4.img,if=virtio,format=raw \
